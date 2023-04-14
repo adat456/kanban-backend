@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { isEmail, isAlphanumeric } = require("validator");
+const bcrypt = require("bcryptjs");
 
 // only username will be converted to lowercase and must be unique
 const UserSchema = new mongoose.Schema({
@@ -38,6 +39,12 @@ const UserSchema = new mongoose.Schema({
         type: mongoose.ObjectId,
         ref: "board",
     }]
+});
+
+UserSchema.pre("save", async (next) => {
+    const salt = await bcrypt.genSalt();
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
 });
 
 module.exports = mongoose.model("user", UserSchema);
