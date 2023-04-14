@@ -10,9 +10,6 @@ const mongoose = require("mongoose");
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 
-const UserModel = require("./models/UserModel");
-const BoardModel = require("./models/BoardModel");
-
 var app = express();
 
 // setting up database connection

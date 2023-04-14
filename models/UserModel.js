@@ -4,12 +4,12 @@ const bcrypt = require("bcryptjs");
 
 // only username will be converted to lowercase and must be unique
 const UserSchema = new mongoose.Schema({
-    first_name: {
+    firstName: {
         type: String,
         required: [true, "Please enter your first name."],
         trim: true,
     },
-    last_name: {
+    lastName: {
         type: String,
         required: [true, "Please enter your last name."],
         trim: true,
@@ -41,7 +41,7 @@ const UserSchema = new mongoose.Schema({
     }]
 });
 
-UserSchema.pre("save", async (next) => {
+UserSchema.pre("save", async function(next) {
     const salt = await bcrypt.genSalt();
     this.password = await bcrypt.hash(this.password, salt);
     next();
