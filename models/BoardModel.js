@@ -15,6 +15,10 @@ const SubTaskSchema = new mongoose.Schema({
 });
 
 const TaskSchema = new mongoose.Schema({
+    column: {
+        type: String,
+        required: true,
+    },
     task: {
         type: String,
         required: [true, "Please enter a title for this task."],
@@ -27,6 +31,10 @@ const TaskSchema = new mongoose.Schema({
         maxLength: [200, "Maximum description length is 200 characters."],
         trim: true,
     },
+    // order: {
+    //     type: Number,
+    //     required: true,
+    // },
     subtasks: [SubTaskSchema],
 });
 
@@ -36,7 +44,10 @@ const BoardSchema = new mongoose.Schema({
         required: [true, "Please enter a name for this board."],
         trim: true,
     },
-    columns: [TaskSchema],
+    columns: [{
+        type: String,
+        trim: true,
+    }],
 });
 
 module.exports = mongoose.model("board", BoardSchema);
