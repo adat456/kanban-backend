@@ -1,21 +1,32 @@
 var express = require("express");
 var router = express.Router();
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
+
 const UserModel = require("../models/UserModel");
 
 /* create a new user */
-
-router.post("/sign-up", function(req, res, next) {
+router.post("/sign-up", async function(req, res, next) {
   const { firstName, lastName, username, password, email } = req.body;
 
-  UserModel.create({ firstName, lastName, username, password, email })
-    .then(doc => console.log(doc))
-    .catch(err => {
-      console.log(err.message);
-      res.status(404).send(err.message);
-    });
+  try {
+    const doc = await UserModel.create({ firstName, lastName, username, password, email });
+    if (doc) {
+      // payload cannot just be doc._id... must be an object, so you need a key as well
+      const token = jwt.sign({ id: doc._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
+      // maxAge of the cookie is equivalent to the expiry date of the token, but ms
+      res.status(200).cookie("jwt", token, { maxAge: 86400000, httpsOnly: true }).send("New user created");
+    } else {
+      throw new Error("Unable to create new user.")
+    }
+  } catch(err) {
+    // err.message pulls the actual error message, so that client receives a text statement instead of an empty object
+    res.status(404).send(err.message);
+  };
 });
 
+/* log in existing user */
 router.post("/log-in", async function(req, res, next) {
   const { username, password } = req.body;
   const lowercaseUsername = username.toLowerCase();
@@ -25,7 +36,8 @@ router.post("/log-in", async function(req, res, next) {
     if (doc) {
       const authStatus = await bcrypt.compare(password, doc.password);
       if (authStatus) {
-        res.status(200).send(doc);
+        const token = jwt.sign({ id: doc._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
+        res.status(200).cookie("jwt", token, { maxAge: 86400000, httpsOnly: true }).send("Logged in!");
       } else {
         throw new Error("Passwords do not match.");
       };
