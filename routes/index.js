@@ -25,7 +25,23 @@ async function authenticate(req, res, next) {
 }
 
 /* read board/tasks */
+router.get("/read-board", authenticate, async function(req, res, next) {
+  const { name } = req.body;
+  const boardName = name.trim().toLowerCase();
 
+  try {
+    const populatedUserDoc = await UserModel.findOne({ _id: res.locals.userId }).populate("boards");
+    populatedUserDoc.boards.forEach(board => {
+      if (board.name.toLowerCase() === boardName) {
+        res.status(200).send(board);
+      } else {
+        throw new Error("Board not found.");
+      };
+    });
+  } catch(err) {
+    res.status(404).send(err.message);
+  }
+});
 
 /* create board - receives name and columns */
 router.post("/create-board", authenticate, async function(req, res, next) {
@@ -54,6 +70,8 @@ router.post("/create-board", authenticate, async function(req, res, next) {
 });
 
 /* update board */
+router.post("/update-board", authenticate, async function(req, res, next) {
+});
 
 /* delete board */
 router.delete("/delete-board", authenticate, async function(req, res, next) {
