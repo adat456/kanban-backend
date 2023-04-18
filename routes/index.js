@@ -27,7 +27,7 @@ async function authenticate(req, res, next) {
 /* read board/tasks */
 
 
-/* create board */
+/* create board - receives name and columns */
 router.post("/create-board", authenticate, async function(req, res, next) {
   const { name, columns } = req.body;
   
@@ -56,6 +56,29 @@ router.post("/create-board", authenticate, async function(req, res, next) {
 /* update board */
 
 /* delete board */
+router.delete("/delete-board", authenticate, async function(req, res, next) {
+  const { name } = req.body;
+
+  try {
+    // delete the board itself
+    await BoardModel.deleteOne({ name });
+
+    // update the user's board array
+    const userDoc = await UserModel.findOne({ _id: res.locals.userId });
+    const populatedUserDoc = await userDoc.populate("boards");
+    const updatedBoardArr = populatedUserDoc.boards.map(board => {
+      if (board.name !== name) return board._id;
+    });
+    userDoc.boards = updatedBoardArr;
+    await userDoc.save();
+
+    // send success message
+    console.log(userDoc);
+    res.status(200).send("Board successfully deleted.");
+  } catch(err) {
+    res.status(404).send(err.message);
+  };
+});
 
 
 /* create task */
