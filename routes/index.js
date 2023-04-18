@@ -24,6 +24,8 @@ async function authenticate(req, res, next) {
   };
 }
 
+// several of the route handlers currently use the board name, but delete and any below use board id, which should be available after pulling all of the board information and looking at the board overview
+
 /* read board/tasks */
 router.get("/read-board", authenticate, async function(req, res, next) {
   const { name } = req.body;
@@ -75,19 +77,17 @@ router.post("/update-board", authenticate, async function(req, res, next) {
 
 /* delete board */
 router.delete("/delete-board", authenticate, async function(req, res, next) {
-  const { name } = req.body;
-  // may not need to normalize because it should not be user input
-  const boardName = name.trim().toLowerCase();
+  const { boardId } = req.body;
 
   try {
     // delete the board itself
-    await BoardModel.deleteOne({ name: boardName });
+    await BoardModel.deleteOne({ _id: boardId });
 
     // update the user's board array
     const userDoc = await UserModel.findOne({ _id: res.locals.userId });
     const populatedUserDoc = await userDoc.populate("boards");
     const updatedBoardArr = populatedUserDoc.boards.filter(board => {
-      return (board.name.toLowerCase() !== boardName);
+      return (board._id !== boardId);
     });
     
     if (updatedBoardArr.length < populatedUserDoc.boards.length) {
@@ -104,6 +104,17 @@ router.delete("/delete-board", authenticate, async function(req, res, next) {
 
 
 /* create task */
+router.post("/create-task", authenticate, async function(req, res, next) {
+  // subtasks should be formatted already as an array of objects 
+  const { boardId, columnId, task, desc, subtasks } = req.body;
+
+  const boardDoc = await BoardModel.findOne({ _id: boardId });
+  const columnDoc = boardDoc.columns.id(columnId);
+
+  columnDoc.tasks = { task, desc, subtasks };
+  await boardDoc.save();
+  res.status(200).send(boardDoc);
+});
 
 /* update task */
 

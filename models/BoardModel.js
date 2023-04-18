@@ -15,10 +15,6 @@ const SubTaskSchema = new mongoose.Schema({
 });
 
 const TaskSchema = new mongoose.Schema({
-    column: {
-        type: String,
-        required: true,
-    },
     task: {
         type: String,
         required: [true, "Please enter a title for this task."],
