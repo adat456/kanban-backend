@@ -30,6 +30,7 @@ async function authenticate(req, res, next) {
 /* create board - receives name and columns */
 router.post("/create-board", authenticate, async function(req, res, next) {
   const { name, columns } = req.body;
+  const boardName = name.trim().toLowerCase();
   
   try {
     const userDoc = await UserModel.findOne({ _id: res.locals.userId });
@@ -37,14 +38,13 @@ router.post("/create-board", authenticate, async function(req, res, next) {
     // populates the board info in the user doc so that board names can be compared
     const populatedUserDoc = await userDoc.populate("boards");
     populatedUserDoc.boards.forEach(board => {
-      console.log(board);
-      if (board.name.toLowerCase() === name.toLowerCase()) {
+      if (board.name.toLowerCase() === boardName) {
         throw new Error("Cannot create a board with the same name.");
       };
     });
 
     // since error was not thrown, a new board is created and its objectid added to the user doc's boards array
-    const boardDoc = await BoardModel.create({ name, columns });
+    const boardDoc = await BoardModel.create({ name: boardName, columns });
     userDoc.boards = [...userDoc.boards, boardDoc._id];
     await userDoc.save();
     res.status(200).send("Board saved!");
@@ -58,23 +58,27 @@ router.post("/create-board", authenticate, async function(req, res, next) {
 /* delete board */
 router.delete("/delete-board", authenticate, async function(req, res, next) {
   const { name } = req.body;
+  // may not need to normalize because it should not be user input
+  const boardName = name.trim().toLowerCase();
 
   try {
     // delete the board itself
-    await BoardModel.deleteOne({ name });
+    await BoardModel.deleteOne({ name: boardName });
 
     // update the user's board array
     const userDoc = await UserModel.findOne({ _id: res.locals.userId });
     const populatedUserDoc = await userDoc.populate("boards");
-    const updatedBoardArr = populatedUserDoc.boards.map(board => {
-      if (board.name !== name) return board._id;
+    const updatedBoardArr = populatedUserDoc.boards.filter(board => {
+      return (board.name.toLowerCase() !== boardName);
     });
-    userDoc.boards = updatedBoardArr;
-    await userDoc.save();
-
-    // send success message
-    console.log(userDoc);
-    res.status(200).send("Board successfully deleted.");
+    
+    if (updatedBoardArr.length < populatedUserDoc.boards.length) {
+      userDoc.boards = updatedBoardArr;
+      await userDoc.save();
+      res.status(200).send("Board successfully deleted.");
+    } else {
+      throw new Error("Something went wrong--the number of boards has not changed.");
+    };
   } catch(err) {
     res.status(404).send(err.message);
   };

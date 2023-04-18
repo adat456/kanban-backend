@@ -38,16 +38,23 @@ const TaskSchema = new mongoose.Schema({
     subtasks: [SubTaskSchema],
 });
 
+const ColumnSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        trim: true,
+        maxLength: [20, "Maximum length of column title is 20 characters."]
+    },
+    tasks: [TaskSchema],
+});
+
 const BoardSchema = new mongoose.Schema({
     name: {
         type: String,
         required: [true, "Please enter a name for this board."],
         trim: true,
+        maxLength: [20, "Maximum length of board title is 20 characters."],
     },
-    columns: [{
-        type: String,
-        trim: true,
-    }],
+    columns: [ColumnSchema],
 });
 
 module.exports = mongoose.model("board", BoardSchema);
