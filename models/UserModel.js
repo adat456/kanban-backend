@@ -42,9 +42,15 @@ const UserSchema = new mongoose.Schema({
 });
 
 UserSchema.pre("save", async function(next) {
-    const salt = await bcrypt.genSalt();
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
+    // necessary because otherwise the password may be hashed multiple times, resulting in password mismatch
+    // https://stackoverflow.com/questions/46022956/bcrypt-nodejs-compare-returns-false-whatever-the-password
+    if (this.isModified("password") || this.isNew) {
+        const salt = await bcrypt.genSalt();
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } else  {
+        next();
+    }
 });
 
 module.exports = mongoose.model("user", UserSchema);

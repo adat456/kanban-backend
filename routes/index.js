@@ -108,17 +108,34 @@ router.post("/create-task", authenticate, async function(req, res, next) {
   // subtasks should be formatted already as an array of objects 
   const { boardId, columnId, task, desc, subtasks } = req.body;
 
-  const boardDoc = await BoardModel.findOne({ _id: boardId });
-  const columnDoc = boardDoc.columns.id(columnId);
-
-  columnDoc.tasks = { task, desc, subtasks };
-  await boardDoc.save();
-  res.status(200).send(boardDoc);
+  try {
+    const boardDoc = await BoardModel.findOne({ _id: boardId });
+    const columnDoc = boardDoc.columns.id(columnId);
+    columnDoc.tasks = { task, desc, subtasks };
+    await boardDoc.save();
+    res.status(200).send(boardDoc);
+  } catch(err) {
+    res.status(404).send(err.message);
+  };
 });
 
 /* update task */
 
 /* delete task */
+// router.delete("/delete-task", authenticate, async function (req, res, next) {
+//   const { boardId, columnId, taskId } = req.body;
+
+//   try {
+//     const boardDoc = await BoardModel.findOne({ _id: boardId });
+//     boardDoc.columns.id(columnId).tasks.id(taskId).remove();
+//     await boardDoc.save();
+//     console.log(boardDoc);
+    
+//     res.status(200).send("Task deleted.");
+//   } catch(err) {
+//     res.status(404).send(err.message);
+//   };
+// });
 
 
 

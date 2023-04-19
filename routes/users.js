@@ -17,7 +17,7 @@ router.post("/sign-up", async function(req, res, next) {
       // payload cannot just be doc._id... must be an object, so you need a key as well
       const token = jwt.sign({ id: doc._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
       // maxAge of the cookie is equivalent to the expiry date of the token, but ms
-      res.status(200).cookie("jwt", token, { maxAge: 86400000, httpsOnly: true }).send("New user created.");
+      res.status(200).cookie("jwt", token, { maxAge: 86400000, httpsOnly: true }).json("New user created.");
     } else {
       throw new Error("Unable to create new user.")
     }
@@ -33,12 +33,20 @@ router.post("/log-in", async function(req, res, next) {
   const lowercaseUsername = username.toLowerCase();
 
   try {
-    const doc = await UserModel.findOne({ username: lowercaseUsername }, "password");
-    if (doc) {
-      const authStatus = await bcrypt.compare(password, doc.password);
+    const userDoc = await UserModel.findOne({ username: lowercaseUsername });
+    // if the username matches...
+    if (userDoc) {
+      const authStatus = await bcrypt.compare(password, userDoc.password);
+      console.log(authStatus);
+      // if the password matches...
       if (authStatus) {
-        const token = jwt.sign({ id: doc._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
-        res.status(200).cookie("jwt", token, { maxAge: 86400000, httpsOnly: true }).send("Logged in!");
+        // create a token
+        const token = jwt.sign({ id: userDoc._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
+        // pull all board data
+        const populatedUserDoc = await userDoc.populate("boards");
+        console.log(populatedUserDoc.boards);
+        // and send it
+        res.status(200).cookie("jwt", token, { maxAge: 86400000, httpsOnly: true }).json(populatedUserDoc.boards);
       } else {
         throw new Error("Passwords do not match.");
       };
