@@ -11,19 +11,19 @@ router.post("/sign-up", async function(req, res, next) {
   const { firstName, lastName, username, password, email } = req.body;
 
   try {
-    const doc = await UserModel.create({ firstName, lastName, username, password, email });
+    const userDoc = await UserModel.create({ firstName, lastName, username, password, email });
     // any errors caused by failure of validations set in the model will be forwarded to the catch block below
-    if (doc) {
+    if (userDoc) {
       // payload cannot just be doc._id... must be an object, so you need a key as well
-      const token = jwt.sign({ id: doc._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
+      const token = jwt.sign({ id: userDoc._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
       // maxAge of the cookie is equivalent to the expiry date of the token, but ms
-      res.status(200).cookie("jwt", token, { maxAge: 86400000, httpsOnly: true }).json("New user created.");
+      res.status(200).cookie("jwt", token, { maxAge: 86400000, httpsOnly: true }).json(userDoc);
     } else {
       throw new Error("Unable to create new user.")
     }
   } catch(err) {
     // err.message pulls the actual error message, so that client receives a text statement instead of an empty object
-    res.status(404).send(err.message);
+    res.status(404).json(err.message);
   };
 });
 
@@ -45,7 +45,7 @@ router.post("/log-in", async function(req, res, next) {
         // pull all board data
         const populatedUserDoc = await userDoc.populate("boards");
         console.log(populatedUserDoc.boards);
-        // and send it
+        // and send the data specifically with .json, NOT .send, otherwise res.json() parsing on front-end will result in invalid JSON
         res.status(200).cookie("jwt", token, { maxAge: 86400000, httpsOnly: true }).json(populatedUserDoc.boards);
       } else {
         throw new Error("Passwords do not match.");
@@ -54,13 +54,13 @@ router.post("/log-in", async function(req, res, next) {
       throw new Error("Unable to find a matching username.")
     };
   } catch(err) {
-    res.status(404).send(err.message);
+    res.status(404).json(err.message);
   };
 });
 
 /* log out user */
 router.get("/log-out", function(req, res, next) {
-  res.status(200).cookie("jwt", "", { maxAge: 1 }).send("Logged out.");
+  res.status(200).cookie("jwt", "", { maxAge: 1 }).json("Logged out.");
 });
 
 module.exports = router;

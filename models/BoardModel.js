@@ -40,6 +40,10 @@ const ColumnSchema = new mongoose.Schema({
         trim: true,
         maxLength: [20, "Maximum length of column title is 20 characters."]
     },
+    order: {
+        type: Number,
+        required: true,
+    },
     tasks: [TaskSchema],
 });
 

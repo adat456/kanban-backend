@@ -20,28 +20,25 @@ async function authenticate(req, res, next) {
     }
   } catch(err) {
     res.locals.user = null;
-    res.status(404).send(err.message);
+    res.status(404).json(err.message);
   };
 }
 
 // several of the route handlers currently use the board name, but delete and any below use board id, which should be available after pulling all of the board information and looking at the board overview
 
 /* read board/tasks */
-router.get("/read-board", authenticate, async function(req, res, next) {
-  const { name } = req.body;
-  const boardName = name.trim().toLowerCase();
+router.get("/read-board/:name", authenticate, async function(req, res, next) {
+  const boardName = req.params.name.trim().toLowerCase().split("-").join(" ");
 
   try {
     const populatedUserDoc = await UserModel.findOne({ _id: res.locals.userId }).populate("boards");
     populatedUserDoc.boards.forEach(board => {
       if (board.name.toLowerCase() === boardName) {
-        res.status(200).send(board);
-      } else {
-        throw new Error("Board not found.");
+        res.status(200).json(board);
       };
     });
   } catch(err) {
-    res.status(404).send(err.message);
+    res.status(404).json(err.message);
   }
 });
 
@@ -65,9 +62,9 @@ router.post("/create-board", authenticate, async function(req, res, next) {
     const boardDoc = await BoardModel.create({ name: boardName, columns });
     userDoc.boards = [...userDoc.boards, boardDoc._id];
     await userDoc.save();
-    res.status(200).send("Board saved!");
+    res.status(200).json("Board saved!");
   } catch(err) {
-    res.status(404).send(err.message);
+    res.status(404).json(err.message);
   };
 });
 
@@ -93,12 +90,12 @@ router.delete("/delete-board", authenticate, async function(req, res, next) {
     if (updatedBoardArr.length < populatedUserDoc.boards.length) {
       userDoc.boards = updatedBoardArr;
       await userDoc.save();
-      res.status(200).send("Board successfully deleted.");
+      res.status(200).json("Board successfully deleted.");
     } else {
       throw new Error("Something went wrong--the number of boards has not changed.");
     };
   } catch(err) {
-    res.status(404).send(err.message);
+    res.status(404).json(err.message);
   };
 });
 
@@ -113,9 +110,9 @@ router.post("/create-task", authenticate, async function(req, res, next) {
     const columnDoc = boardDoc.columns.id(columnId);
     columnDoc.tasks = { task, desc, subtasks };
     await boardDoc.save();
-    res.status(200).send(boardDoc);
+    res.status(200).json(boardDoc);
   } catch(err) {
-    res.status(404).send(err.message);
+    res.status(404).json(err.message);
   };
 });
 
@@ -131,9 +128,9 @@ router.post("/create-task", authenticate, async function(req, res, next) {
 //     await boardDoc.save();
 //     console.log(boardDoc);
     
-//     res.status(200).send("Task deleted.");
+//     res.status(200).json("Task deleted.");
 //   } catch(err) {
-//     res.status(404).send(err.message);
+//     res.status(404).json(err.message);
 //   };
 // });
 
