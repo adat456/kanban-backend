@@ -1,6 +1,7 @@
 var express = require("express");
 var router = express.Router();
 const jwt = require("jsonwebtoken");
+const { isNumeric } = require("validator");
 
 const UserModel = require("../models/UserModel");
 const BoardModel = require("../models/BoardModel");
@@ -24,18 +25,27 @@ async function authenticate(req, res, next) {
   };
 }
 
-// several of the route handlers currently use the board name, but delete and any below use board id, which should be available after pulling all of the board information and looking at the board overview
+// only read-board should receive the board name, because it is pulling the board id for future routes
 
 /* read board/tasks */
 router.get("/read-board/:name", authenticate, async function(req, res, next) {
-  const boardName = req.params.name.trim().toLowerCase().split("-").join(" ");
+  let boardName;
+  // accepts either board ID or board name (which is converted from hyphenated to spaced)
+  if (isNumeric(req.params.name)) {
+    boardName = req.params.name;
+  } else {
+    boardName = req.params.name.trim().toLowerCase().split("-").join(" ");
+  }
 
   try {
     const populatedUserDoc = await UserModel.findOne({ _id: res.locals.userId }).populate("boards");
+    console.log(boardName);
     populatedUserDoc.boards.forEach(board => {
-      if (board.name.toLowerCase() === boardName) {
+      // .toString() is used to convert Mongoose ObjectIds to strings for comparison purposes, etc.
+      if (board.name.toLowerCase() === boardName || board._id.toString() === boardName) {
         res.status(200).json(board);
       };
+      // removed else clause that threw an error because it would throw an error at the first mismatch and automatically route to the catch clause
     });
   } catch(err) {
     res.status(404).json(err.message);
@@ -70,7 +80,47 @@ router.post("/create-board", authenticate, async function(req, res, next) {
 
 /* update board */
 router.post("/update-board", authenticate, async function(req, res, next) {
+  const { name, boardId, columns } = req.body;
+
+  try {
+    const boardDoc = await BoardModel.findOne({ _id: boardId });
+    boardDoc.name = name;
+
+    let existingColumns = boardDoc.columns;
+    let newColumns = [];
+    columns.forEach(col => {
+      // updating existing column if there is an ID
+      if (col.id && col.name) {
+        existingColumns.forEach(existingCol => {
+          if (col.id === existingCol._id.toString()) {
+            existingCol.name = col.name;
+          };
+        });
+      }
+
+      // removing existing column if there is an ID but an empty string
+      if (col.id && !col.name) {
+        existingColumns = existingColumns.filter(existingCol => (col.id !== existingCol._id.toString()));
+      }
+
+      // adding new column if they don't have an ID and the name string is not empty
+      if (!col.id && !col.name) {
+        newColumns.push({ name: col.name, order: col.order });
+      }
+    });
+    boardDoc.columns = [...existingColumns, ...newColumns];
+    
+    await boardDoc.save();
+    res.status(200).json(boardDoc);
+  } catch(err) {
+    res.status(404).json(err.message);
+  };
 });
+
+// need the board id to pull the specific board
+// need the updated board name
+// need the updated column names, order, and IDs if they exist
+// if IDs match, replace the column name, else add a new column to the array
 
 /* delete board */
 router.delete("/delete-board", authenticate, async function(req, res, next) {
@@ -99,7 +149,6 @@ router.delete("/delete-board", authenticate, async function(req, res, next) {
   };
 });
 
-
 /* create task */
 router.post("/create-task", authenticate, async function(req, res, next) {
   // subtasks should be formatted already as an array of objects 
@@ -108,7 +157,10 @@ router.post("/create-task", authenticate, async function(req, res, next) {
   try {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
     const columnDoc = boardDoc.columns.id(columnId);
-    columnDoc.tasks = { task, desc, subtasks };
+    columnDoc.tasks = [
+      ...columnDoc.tasks,
+      { task, desc, subtasks }
+    ];
     await boardDoc.save();
     res.status(200).json(boardDoc);
   } catch(err) {
