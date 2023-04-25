@@ -157,7 +157,50 @@ router.post("/create-task", authenticate, async function(req, res, next) {
   };
 });
 
-/* update task */
+/* update task - just for updating subtask status and changing the column */
+router.post("/update-task", authenticate, async function(req, res, next) {
+  const { boardId, colId, taskId, updatedSubtasks, updatedColId } = req.body;
+
+  try {
+    const boardDoc = await BoardModel.findOne({ _id: boardId });
+    // can string multiple find commands to access deeply nested subdocs
+    const taskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
+
+    updatedSubtasks.forEach(async (updatedSubtask) => {
+      const subtaskDoc = await taskDoc.subtasks.id(updatedSubtask.id);
+      subtaskDoc.status = updatedSubtask.status;
+    });
+
+    await boardDoc.save();
+
+    if (colId !== updatedColId) {
+      // adding task to new column
+      let updatedColumnDoc = await boardDoc.columns.id(updatedColId);
+      let updatedTaskArr = updatedColumnDoc.tasks;
+      const taskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
+      updatedTaskArr = [...updatedTaskArr, taskDoc];
+      console.log(updatedTaskArr);
+      updatedColumnDoc.tasks = updatedTaskArr;
+
+      // removing task from current column
+      let curColumnDoc = await boardDoc.columns.id(colId);
+      curColumnDoc.tasks = curColumnDoc.tasks.filter(task => {
+        return (task._id.toString() !== taskId);
+      })
+    }
+
+    await boardDoc.save();
+    res.status(200).json(boardDoc);
+  } catch(err) {
+    res.status(404).json(err.message);
+  }
+
+});
+
+/* edit task */
+router.post("/edit-task", authenticate, async function(req, res, next) {
+
+});
 
 /* delete task */
 // router.delete("/delete-task", authenticate, async function (req, res, next) {
