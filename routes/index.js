@@ -104,12 +104,12 @@ router.post("/update-board", authenticate, async function(req, res, next) {
       }
 
       // adding new column if they don't have an ID and the name string is not empty
-      if (!col.id && !col.name) {
+      if (!col.id && col.name) {
         newColumns.push({ name: col.name, order: col.order });
       }
     });
     boardDoc.columns = [...existingColumns, ...newColumns];
-    
+
     await boardDoc.save();
     res.status(200).json(boardDoc);
   } catch(err) {
@@ -117,14 +117,9 @@ router.post("/update-board", authenticate, async function(req, res, next) {
   };
 });
 
-// need the board id to pull the specific board
-// need the updated board name
-// need the updated column names, order, and IDs if they exist
-// if IDs match, replace the column name, else add a new column to the array
-
 /* delete board */
-router.delete("/delete-board", authenticate, async function(req, res, next) {
-  const { boardId } = req.body;
+router.delete("/delete-board/:boardId", authenticate, async function(req, res, next) {
+  const boardId = req.params.boardId;
 
   try {
     // delete the board itself
@@ -132,18 +127,12 @@ router.delete("/delete-board", authenticate, async function(req, res, next) {
 
     // update the user's board array
     const userDoc = await UserModel.findOne({ _id: res.locals.userId });
-    const populatedUserDoc = await userDoc.populate("boards");
-    const updatedBoardArr = populatedUserDoc.boards.filter(board => {
-      return (board._id !== boardId);
+    const updatedBoardArr = userDoc.boards.map(id => {
+      if (id.toString() !== boardId) return id;
     });
-    
-    if (updatedBoardArr.length < populatedUserDoc.boards.length) {
-      userDoc.boards = updatedBoardArr;
-      await userDoc.save();
-      res.status(200).json("Board successfully deleted.");
-    } else {
-      throw new Error("Something went wrong--the number of boards has not changed.");
-    };
+    userDoc.boards = updatedBoardArr;
+    await userDoc.save();
+    res.status(200).json("Board successfully deleted.");
   } catch(err) {
     res.status(404).json(err.message);
   };
