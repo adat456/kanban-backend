@@ -96,17 +96,17 @@ router.post("/update-board", authenticate, async function(req, res, next) {
             existingCol.name = col.name;
           };
         });
-      }
+      };
 
       // removing existing column if there is an ID but an empty string
       if (col.id && !col.name) {
         existingColumns = existingColumns.filter(existingCol => (col.id !== existingCol._id.toString()));
-      }
+      };
 
       // adding new column if they don't have an ID and the name string is not empty
       if (!col.id && col.name) {
         newColumns.push({ name: col.name, order: col.order });
-      }
+      };
     });
     boardDoc.columns = [...existingColumns, ...newColumns];
 
@@ -178,45 +178,98 @@ router.post("/update-task", authenticate, async function(req, res, next) {
       let updatedColumnDoc = await boardDoc.columns.id(updatedColId);
       let updatedTaskArr = updatedColumnDoc.tasks;
       const taskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
-      updatedTaskArr = [...updatedTaskArr, taskDoc];
-      console.log(updatedTaskArr);
+      updatedTaskArr = [...updatedTaskArr, taskDoc];      console.log(updatedTaskArr);
       updatedColumnDoc.tasks = updatedTaskArr;
 
       // removing task from current column
       let curColumnDoc = await boardDoc.columns.id(colId);
       curColumnDoc.tasks = curColumnDoc.tasks.filter(task => {
         return (task._id.toString() !== taskId);
-      })
-    }
+      });
+    };
 
     await boardDoc.save();
     res.status(200).json(boardDoc);
   } catch(err) {
     res.status(404).json(err.message);
-  }
+  };
 
 });
 
-/* edit task */
+/* edit task - for editing task name, description, subtasks, AND column */
 router.post("/edit-task", authenticate, async function(req, res, next) {
+  const { boardId, colId, taskId, task, desc, updatedSubtasks, updatedColId } = req.body;
 
+  try {
+    const boardDoc = await BoardModel.findOne({ _id: boardId });
+    const taskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
+
+    taskDoc.task = task;
+    taskDoc.desc = desc;
+
+    let existingSubtasks = taskDoc.subtasks;
+    let newSubtasks = [];
+    updatedSubtasks.forEach(subtask => {
+      // updating existing subtask if there is an ID
+      if (subtask.id && subtask.subtask) {
+        existingSubtasks.forEach(existingSubtask => {
+          if (subtask.id === existingSubtask._id.toString()) {
+            existingSubtask.subtask = subtask.subtask;
+          };
+        });
+      };
+
+      // removing existing column if there is an ID but an empty string
+      if (subtask.id && !subtask.subtask) {
+        existingSubtasks = existingSubtasks.filter(existingSubtask => (subtask.id !== existingSubtask._id.toString()));
+      };
+
+      // adding new column if they don't have an ID and the name string is not empty
+      if (!subtask.id && subtask.subtask) {
+        newSubtasks.push({ subtask: subtask.subtask, status: false });
+      };
+    });
+    taskDoc.subtasks = [...existingSubtasks, ...newSubtasks];
+
+    if (colId !== updatedColId) {
+      // adding task to new column
+      let updatedColumnDoc = await boardDoc.columns.id(updatedColId);
+      let updatedTaskArr = updatedColumnDoc.tasks;
+      const taskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
+      updatedTaskArr = [...updatedTaskArr, taskDoc];      console.log(updatedTaskArr);
+      updatedColumnDoc.tasks = updatedTaskArr;
+
+      // removing task from current column
+      let curColumnDoc = await boardDoc.columns.id(colId);
+      curColumnDoc.tasks = curColumnDoc.tasks.filter(task => {
+        return (task._id.toString() !== taskId);
+      });
+    };
+
+    await boardDoc.save();
+    res.status(200).json(boardDoc);
+  } catch(err) {
+    res.status(404).json(err.message);
+  };
 });
 
 /* delete task */
-// router.delete("/delete-task", authenticate, async function (req, res, next) {
-//   const { boardId, columnId, taskId } = req.body;
+router.delete("/delete-task/:boardId/:columnId/:taskId", authenticate, async function (req, res, next) {
+   const { boardId, columnId, taskId } = req.params;
 
-//   try {
-//     const boardDoc = await BoardModel.findOne({ _id: boardId });
-//     boardDoc.columns.id(columnId).tasks.id(taskId).remove();
-//     await boardDoc.save();
-//     console.log(boardDoc);
-    
-//     res.status(200).json("Task deleted.");
-//   } catch(err) {
-//     res.status(404).json(err.message);
-//   };
-// });
+   try {
+     const boardDoc = await BoardModel.findOne({ _id: boardId });
+     const columnDoc = await boardDoc.columns.id(columnId);
+     columnDoc.tasks = columnDoc.tasks.filter(task => {
+      return (task._id.toString() !== taskId);
+     });
+
+     await boardDoc.save();
+     res.status(200).json(boardDoc);
+   } catch(err) {
+     res.status(404).json(err.message);
+  };
+});
 
 
 
