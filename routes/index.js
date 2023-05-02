@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 const jwt = require("jsonwebtoken");
 const { isNumeric } = require("validator");
+const arrayMove = require("array-move");
 
 const UserModel = require("../models/UserModel");
 const BoardModel = require("../models/BoardModel");
@@ -141,14 +142,14 @@ router.delete("/delete-board/:boardId", authenticate, async function(req, res, n
 /* create task */
 router.post("/create-task", authenticate, async function(req, res, next) {
   // subtasks should be formatted already as an array of objects 
-  const { boardId, columnId, task, desc, subtasks } = req.body;
+  const { boardId, columnId, task, order, desc, subtasks } = req.body;
 
   try {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
     const columnDoc = boardDoc.columns.id(columnId);
     columnDoc.tasks = [
       ...columnDoc.tasks,
-      { task, desc, subtasks }
+      { task, order, desc, subtasks }
     ];
     await boardDoc.save();
     res.status(200).json(boardDoc);
@@ -159,33 +160,54 @@ router.post("/create-task", authenticate, async function(req, res, next) {
 
 /* update task - just for updating subtask status and changing the column */
 router.post("/update-task", authenticate, async function(req, res, next) {
-  const { boardId, colId, taskId, updatedSubtasks, updatedColId } = req.body;
+  const { boardId, colId, taskId, taskOrder, updatedSubtasks = undefined, updatedTaskOrder = undefined, updatedColId } = req.body;
+  console.log(req.body);
 
   try {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
     // can string multiple find commands to access deeply nested subdocs
-    const taskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
+    const curTaskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
 
-    updatedSubtasks.forEach(async (updatedSubtask) => {
-      const subtaskDoc = await taskDoc.subtasks.id(updatedSubtask.id);
-      subtaskDoc.status = updatedSubtask.status;
-    });
+    if (updatedSubtasks) {
+      updatedSubtasks.forEach(async (updatedSubtask) => {
+        const subtaskDoc = await curTaskDoc.subtasks.id(updatedSubtask.id);
+        subtaskDoc.status = updatedSubtask.status;
+      });
 
-    await boardDoc.save();
+      await boardDoc.save();
+    };
 
+    // UPDATING COLUMN AND ORDER
+
+    // same column, different order
+    if (colId === updatedColId) {
+      const curColumnDoc = await boardDoc.columns.id(colId);
+      curColumnDoc.tasks = arrayMove(curColumnDoc.tasks, taskOrder, updatedTaskOrder);
+    };
+
+    // different column
     if (colId !== updatedColId) {
-      // adding task to new column
-      let updatedColumnDoc = await boardDoc.columns.id(updatedColId);
-      let updatedTaskArr = updatedColumnDoc.tasks;
-      const taskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
-      updatedTaskArr = [...updatedTaskArr, taskDoc];      console.log(updatedTaskArr);
-      updatedColumnDoc.tasks = updatedTaskArr;
+      // order specified - split task array in half and join with new task in the middle
+      if (updatedTaskOrder) {
+        const curTaskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
+        const updatedColumnDoc = await boardDoc.columns.id(updatedColId);
+        const firstHalfTaskArr = updatedColumnDoc.tasks.slice(0, updatedTaskOrder);
+        const secondHalfTaskArr = updatedColumnDoc.tasks.slice(updatedTaskOrder);
+        updatedColumnDoc.tasks = [...firstHalfTaskArr, curTaskDoc, ...secondHalfTaskArr]
+      };
 
-      // removing task from current column
-      let curColumnDoc = await boardDoc.columns.id(colId);
+      // no order specified - moving to empty column OR if using the edit task form - just add the task to the end of the task array
+      if (!updatedTaskOrder) {
+        const curTaskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
+        const updatedColumnDoc = await boardDoc.columns.id(updatedColId);
+        updatedColumnDoc.tasks = [...updatedColumnDoc.tasks, curTaskDoc];
+      };
+
+      // clean up - filtering the task from the current column's task arr
+      const curColumnDoc = await boardDoc.columns.id(colId);
       curColumnDoc.tasks = curColumnDoc.tasks.filter(task => {
         return (task._id.toString() !== taskId);
-      });
+      }); 
     };
 
     await boardDoc.save();
@@ -193,7 +215,6 @@ router.post("/update-task", authenticate, async function(req, res, next) {
   } catch(err) {
     res.status(404).json(err.message);
   };
-
 });
 
 /* edit task - for editing task name, description, subtasks, AND column */

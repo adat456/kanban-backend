@@ -17,7 +17,7 @@ router.post("/sign-up", async function(req, res, next) {
       // payload cannot just be doc._id... must be an object, so you need a key as well
       const token = jwt.sign({ id: userDoc._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
       // maxAge of the cookie is equivalent to the expiry date of the token, but ms
-      res.status(200).cookie("jwt", token, { maxAge: 86400000, httpsOnly: true }).json(userDoc);
+      res.status(200).cookie("jwt", token, { maxAge: 86400000, httpOnly: true }).json(userDoc);
     } else {
       throw new Error("Unable to create new user.")
     }
@@ -60,7 +60,7 @@ router.post("/log-in", async function(req, res, next) {
 
 /* log out user */
 router.get("/log-out", function(req, res, next) {
-  res.status(200).cookie("jwt", "", { maxAge: 1 }).json("Logged out.");
+  res.cookie("jwt", "nomas", { maxAge: 500, httpOnly: true }).json("Logged out");
 });
 
 module.exports = router;

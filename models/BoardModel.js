@@ -28,10 +28,6 @@ const TaskSchema = new mongoose.Schema({
         maxLength: [200, "Maximum description length is 200 characters."],
         trim: true,
     },
-    // order: {
-    //     type: Number,
-    //     required: true,
-    // },
     subtasks: [SubTaskSchema],
 });
 
