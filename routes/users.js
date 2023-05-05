@@ -2,9 +2,25 @@ var express = require("express");
 var router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const redis = require("redis");
 require("dotenv").config();
 
 const UserModel = require("../models/UserModel");
+
+// setting up redis connection
+let redisClient = null;
+(async () => {
+  redisClient = redis.createClient();
+
+  redisClient.on("error", error => {
+    console.log(error);
+  });
+  redisClient.on("connect", () => {
+    console.log("Redis connected!");
+  });
+
+  await redisClient.connect();
+})();
 
 /* create a new user */
 router.post("/sign-up", async function(req, res, next) {
@@ -37,16 +53,14 @@ router.post("/log-in", async function(req, res, next) {
     // if the username matches...
     if (userDoc) {
       const authStatus = await bcrypt.compare(password, userDoc.password);
-      console.log(authStatus);
       // if the password matches...
       if (authStatus) {
         // create a token
         const token = jwt.sign({ id: userDoc._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
         // pull all board data
         const populatedUserDoc = await userDoc.populate("boards");
-        console.log(populatedUserDoc.boards);
         // and send the data specifically with .json, NOT .send, otherwise res.json() parsing on front-end will result in invalid JSON
-        res.status(200).cookie("jwt", token, { maxAge: 86400000, httpsOnly: true }).json(populatedUserDoc.boards);
+        res.status(200).cookie("jwt", token, { maxAge: 86400000, httpOnly: true }).json(populatedUserDoc.boards);
       } else {
         throw new Error("Passwords do not match.");
       };
@@ -58,9 +72,18 @@ router.post("/log-in", async function(req, res, next) {
   };
 });
 
-/* log out user */
-router.get("/log-out", function(req, res, next) {
-  res.cookie("jwt", "nomas", { maxAge: 500, httpOnly: true }).json("Logged out");
+// logging out a user by storing current JWT on blacklist (client will redirect to log-in screen)
+router.get("/log-out", async function(req, res, next) {
+  const token = req.cookies.jwt;
+  const { exp } = await jwt.verify(token, process.env.JWT_SECRET);
+  
+  // storing a key-value pair consisting of an arbitrary (but unique) key name and the actual JWT token
+  const key = `blacklist_${token}`;
+  await redisClient.set(key, token);
+  // specifying the expiry date of the key-value pair with the key name and the expiry date of the token itself
+  redisClient.expireAt(key, exp);
+  
+  res.status(200).send("Logged out.");
 });
 
 module.exports = router;

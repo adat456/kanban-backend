@@ -1,27 +1,49 @@
 var express = require("express");
 var router = express.Router();
 const jwt = require("jsonwebtoken");
+const redis = require("redis");
 const { isNumeric } = require("validator");
 const arrayMove = require("array-move");
 
 const UserModel = require("../models/UserModel");
 const BoardModel = require("../models/BoardModel");
 
+// setting up redis connection
+let redisClient = null;
+(async () => {
+  redisClient = redis.createClient();
+
+  redisClient.on("error", error => {
+    console.log(error);
+  });
+  redisClient.on("connect", () => {
+    console.log("Redis connected!");
+  });
+
+  await redisClient.connect();
+})();
+
 /* authentication middleware */
 async function authenticate(req, res, next) {
   const token = req.cookies.jwt;
 
   try {
+    // if there's a JWT token, will check if it's on the blacklist first--if it's not, pull its info and proceed to the actual route handler
     if (token) {
-      const decodedToken = await jwt.verify(token, process.env.JWT_SECRET);
-      res.locals.userId = decodedToken.id;
-      next();
+      const onBlacklist = await redisClient.get(`blacklist_${token}`);
+      if (onBlacklist) {
+        throw new Error("JWT rejected.");
+      } else {
+        const decodedToken = await jwt.verify(token, process.env.JWT_SECRET);
+        res.locals.userId = decodedToken.id;
+        next();
+      }
     } else {
-      res.locals.user = null;
+      res.locals.userId = null;
       throw new Error("Please log in.");
     }
   } catch(err) {
-    res.locals.user = null;
+    res.locals.userId = null;
     res.status(404).json(err.message);
   };
 }
@@ -40,7 +62,6 @@ router.get("/read-board/:name", authenticate, async function(req, res, next) {
 
   try {
     const populatedUserDoc = await UserModel.findOne({ _id: res.locals.userId }).populate("boards");
-    console.log(boardName);
     populatedUserDoc.boards.forEach(board => {
       // .toString() is used to convert Mongoose ObjectIds to strings for comparison purposes, etc.
       if (board.name.toLowerCase() === boardName || board._id.toString() === boardName) {
@@ -289,7 +310,5 @@ router.delete("/delete-task/:boardId/:columnId/:taskId", authenticate, async fun
      res.status(404).json(err.message);
   };
 });
-
-
 
 module.exports = router;
