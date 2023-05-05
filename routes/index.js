@@ -56,7 +56,7 @@ router.get("/read-board/:name", authenticate, async function(req, res, next) {
 /* create board - receives name and columns */
 router.post("/create-board", authenticate, async function(req, res, next) {
   const { name, columns } = req.body;
-  const boardName = name.trim().toLowerCase();
+  const trimmedBoardName = name.trim();
   
   try {
     const userDoc = await UserModel.findOne({ _id: res.locals.userId });
@@ -64,16 +64,16 @@ router.post("/create-board", authenticate, async function(req, res, next) {
     // populates the board info in the user doc so that board names can be compared
     const populatedUserDoc = await userDoc.populate("boards");
     populatedUserDoc.boards.forEach(board => {
-      if (board.name.toLowerCase() === boardName) {
+      if (board.name.toLowerCase() === trimmedBoardName.toLowerCase()) {
         throw new Error("Cannot create a board with the same name.");
       };
     });
 
     // since error was not thrown, a new board is created and its objectid added to the user doc's boards array
-    const boardDoc = await BoardModel.create({ name: boardName, columns });
+    const boardDoc = await BoardModel.create({ name: trimmedBoardName, columns });
     userDoc.boards = [...userDoc.boards, boardDoc._id];
     await userDoc.save();
-    res.status(200).json("Board saved!");
+    res.status(200).json(boardDoc);
   } catch(err) {
     res.status(404).json(err.message);
   };
@@ -128,12 +128,12 @@ router.delete("/delete-board/:boardId", authenticate, async function(req, res, n
 
     // update the user's board array
     const userDoc = await UserModel.findOne({ _id: res.locals.userId });
-    const updatedBoardArr = userDoc.boards.map(id => {
-      if (id.toString() !== boardId) return id;
+    const updatedBoardArr = userDoc.boards.filter(id => {
+      return (id.toString() !== boardId);
     });
     userDoc.boards = updatedBoardArr;
     await userDoc.save();
-    res.status(200).json("Board successfully deleted.");
+    res.status(200).json(userDoc);
   } catch(err) {
     res.status(404).json(err.message);
   };
@@ -171,7 +171,7 @@ router.post("/update-task", authenticate, async function(req, res, next) {
     if (updatedSubtasks) {
       updatedSubtasks.forEach(async (updatedSubtask) => {
         const subtaskDoc = await curTaskDoc.subtasks.id(updatedSubtask.id);
-        subtaskDoc.status = updatedSubtask.status;
+        if (subtaskDoc) subtaskDoc.status = updatedSubtask.status;
       });
 
       await boardDoc.save();
@@ -188,16 +188,14 @@ router.post("/update-task", authenticate, async function(req, res, next) {
     // different column
     if (colId !== updatedColId) {
       // order specified - split task array in half and join with new task in the middle
-      if (updatedTaskOrder) {
+      if (updatedTaskOrder >= 0) {
         const curTaskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
         const updatedColumnDoc = await boardDoc.columns.id(updatedColId);
         const firstHalfTaskArr = updatedColumnDoc.tasks.slice(0, updatedTaskOrder);
         const secondHalfTaskArr = updatedColumnDoc.tasks.slice(updatedTaskOrder);
         updatedColumnDoc.tasks = [...firstHalfTaskArr, curTaskDoc, ...secondHalfTaskArr]
-      };
-
-      // no order specified - moving to empty column OR if using the edit task form - just add the task to the end of the task array
-      if (!updatedTaskOrder) {
+      } else {
+        // no order specified - moving to empty column OR if using the edit task form - just add the task to the end of the task array
         const curTaskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
         const updatedColumnDoc = await boardDoc.columns.id(updatedColId);
         updatedColumnDoc.tasks = [...updatedColumnDoc.tasks, curTaskDoc];
