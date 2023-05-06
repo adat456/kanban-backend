@@ -27,17 +27,31 @@ router.post("/sign-up", async function(req, res, next) {
   const { firstName, lastName, username, password, email } = req.body;
 
   try {
+    // checking to make sure that username and email are unique
+    const existingUsername = await UserModel.findOne({ username: username.trim().toLowerCase() });
+    const existingEmail = await UserModel.findOne({ email: email.trim().toLowerCase() });
+    if (existingUsername && existingEmail) {
+      throw new Error("Email and username have already been taken.");
+    } else if (existingEmail) {
+      throw new Error("Email has already been taken.");
+    } else if (existingUsername) {
+      throw new Error("Username has already been taken.");
+    };
+
     const userDoc = await UserModel.create({ firstName, lastName, username, password, email });
     // any errors caused by failure of validations set in the model will be forwarded to the catch block below
     if (userDoc) {
       // payload cannot just be doc._id... must be an object, so you need a key as well
       const token = jwt.sign({ id: userDoc._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
-      // maxAge of the cookie is equivalent to the expiry date of the token, but ms
+      // cookie maxAge == token expiry date, but in ms
       res.status(200).cookie("jwt", token, { maxAge: 86400000, httpOnly: true }).json(userDoc);
     } else {
       throw new Error("Unable to create new user.")
     }
   } catch(err) {
+    // need to be able to send validation messages for MISSING fields, not just invalid fields
+    // AND upon sign up, the lack of boardsData prevents the entire site from rendering... needs to be fixed anyway because logging in and then refreshing wipes boardsData
+    console.log(err.message);
     // err.message pulls the actual error message, so that client receives a text statement instead of an empty object
     res.status(404).json(err.message);
   };
