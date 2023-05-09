@@ -49,9 +49,6 @@ router.post("/sign-up", async function(req, res, next) {
       throw new Error("Unable to create new user.")
     }
   } catch(err) {
-    // need to be able to send validation messages for MISSING fields, not just invalid fields
-    // AND upon sign up, the lack of boardsData prevents the entire site from rendering... needs to be fixed anyway because logging in and then refreshing wipes boardsData
-    console.log(err.message);
     // err.message pulls the actual error message, so that client receives a text statement instead of an empty object
     res.status(404).json(err.message);
   };
@@ -71,10 +68,8 @@ router.post("/log-in", async function(req, res, next) {
       if (authStatus) {
         // create a token
         const token = jwt.sign({ id: userDoc._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
-        // pull all board data
-        const populatedUserDoc = await userDoc.populate("boards");
-        // and send the data specifically with .json, NOT .send, otherwise res.json() parsing on front-end will result in invalid JSON
-        res.status(200).cookie("jwt", token, { maxAge: 86400000, httpOnly: true }).json(populatedUserDoc.boards);
+        // send any data specifically with .json, NOT .send, otherwise res.json() parsing on front-end will result in invalid JSON
+        res.status(200).cookie("jwt", token, { maxAge: 86400000, httpOnly: true }).json("Logged in.");
       } else {
         throw new Error("Passwords do not match.");
       };
