@@ -117,7 +117,6 @@ router.post("/create-board", authenticate, async function(req, res, next) {
 /* update board */
 router.post("/update-board", authenticate, async function(req, res, next) {
   const { name, boardId, columns } = req.body;
-  console.log(columns);
 
   try {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
@@ -151,6 +150,24 @@ router.post("/update-board", authenticate, async function(req, res, next) {
     await boardDoc.save();
     res.status(200).json(boardDoc);
   } catch(err) {
+    next(err);
+  };
+});
+
+/* toggle favorite status on board */
+router.post("/update-board-favorite", authenticate, async function(req, res, next) {
+  const { boardId } = req.body;
+
+  try {
+    const boardDoc = await BoardModel.findOne({ _id: boardId });
+    if (boardDoc) {
+      boardDoc.favorite = !boardDoc.favorite;
+      await boardDoc.save();
+      res.status(200).send(boardDoc);
+    } else {
+      throw new Error("Could not find board.")
+    }
+  } catch (err) {
     next(err);
   };
 });

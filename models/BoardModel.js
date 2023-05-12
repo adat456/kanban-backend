@@ -44,6 +44,10 @@ const BoardSchema = new mongoose.Schema({
         trim: true,
         maxLength: [20, "Maximum length of board title is 20 characters."],
     },
+    favorite: { 
+        type: Boolean,
+        default: false, 
+    },
     columns: [ColumnSchema],
 });
 
