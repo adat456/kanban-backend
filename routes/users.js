@@ -49,8 +49,7 @@ router.post("/sign-up", async function(req, res, next) {
       throw new Error("Unable to create new user.")
     }
   } catch(err) {
-    // err.message pulls the actual error message, so that client receives a text statement instead of an empty object
-    res.status(404).json(err.message);
+    next(err);
   };
 });
 
@@ -69,7 +68,7 @@ router.post("/log-in", async function(req, res, next) {
         // create a token
         const token = jwt.sign({ id: userDoc._id }, process.env.JWT_SECRET, { expiresIn: "24h" });
         // send any data specifically with .json, NOT .send, otherwise res.json() parsing on front-end will result in invalid JSON
-        res.status(200).cookie("jwt", token, { maxAge: 86400000, httpOnly: true }).json("Logged in.");
+        res.status(200).cookie("jwt", token, { maxAge: 86400000, httpOnly: true, secure: true }).json("Logged in.");
       } else {
         throw new Error("Passwords do not match.");
       };
@@ -77,22 +76,26 @@ router.post("/log-in", async function(req, res, next) {
       throw new Error("Unable to find a matching username.")
     };
   } catch(err) {
-    res.status(404).json(err.message);
+    next(err);
   };
 });
 
 // logging out a user by storing current JWT on blacklist (client will redirect to log-in screen)
 router.get("/log-out", async function(req, res, next) {
   const token = req.cookies.jwt;
-  const { exp } = await jwt.verify(token, process.env.JWT_SECRET);
-  
-  // storing a key-value pair consisting of an arbitrary (but unique) key name and the actual JWT token
-  const key = `blacklist_${token}`;
-  await redisClient.set(key, token);
-  // specifying the expiry date of the key-value pair with the key name and the expiry date of the token itself
-  redisClient.expireAt(key, exp);
-  
-  res.status(200).send("Logged out.");
+
+  try {
+    const { exp } = await jwt.verify(token, process.env.JWT_SECRET);
+    // storing a key-value pair consisting of an arbitrary (but unique) key name and the actual JWT token
+    const key = `blacklist_${token}`;
+    await redisClient.set(key, token);
+    // specifying the expiry date of the key-value pair with the key name and the expiry date of the token itself
+    redisClient.expireAt(key, exp);
+    
+    res.status(200).send("Logged out.");
+  } catch(err) {
+    next(err);
+  };  
 });
 
 module.exports = router;

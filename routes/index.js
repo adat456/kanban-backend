@@ -40,11 +40,11 @@ async function authenticate(req, res, next) {
       }
     } else {
       res.locals.userId = null;
-      throw new Error("Please log in.");
+      throw new Error("No token received. Please log in.");
     };
   } catch(err) {
     res.locals.userId = null;
-    res.status(404).json(err.message);
+    next(err);
   };
 };
 
@@ -52,10 +52,14 @@ async function authenticate(req, res, next) {
 router.get("/read-all", authenticate, async function (req, res, next) {
   try {
     const userDoc = await UserModel.findOne({ _id: res.locals.userId });
-    const populatedUserDoc = await userDoc.populate("boards");
-    res.status(200).json(populatedUserDoc.boards);
+    if (userDoc) {
+      const populatedUserDoc = await userDoc.populate("boards");
+      res.status(200).json(populatedUserDoc.boards);
+    } else {
+      throw new Error("Unable to retrieve existing board data.");
+    };
   } catch(err) {
-    res.status(404).json(err.message);
+    next(err);
   };  
 });
 
@@ -80,8 +84,8 @@ router.get("/read-board/:name", authenticate, async function(req, res, next) {
       // removed else clause that threw an error because it would throw an error at the first mismatch and automatically route to the catch clause
     });
   } catch(err) {
-    res.status(404).json(err.message);
-  }
+    next(err);
+  };
 });
 
 /* create board - receives name and columns */
@@ -106,7 +110,7 @@ router.post("/create-board", authenticate, async function(req, res, next) {
     await userDoc.save();
     res.status(200).json(boardDoc);
   } catch(err) {
-    res.status(404).json(err.message);
+    next(err);
   };
 });
 
@@ -147,7 +151,7 @@ router.post("/update-board", authenticate, async function(req, res, next) {
     await boardDoc.save();
     res.status(200).json(boardDoc);
   } catch(err) {
-    res.status(404).json(err.message);
+    next(err);
   };
 });
 
@@ -168,26 +172,26 @@ router.delete("/delete-board/:boardId", authenticate, async function(req, res, n
     await userDoc.save();
     res.status(200).json(userDoc);
   } catch(err) {
-    res.status(404).json(err.message);
+    next(err);
   };
 });
 
 /* create task */
 router.post("/create-task", authenticate, async function(req, res, next) {
   // subtasks should be formatted already as an array of objects 
-  const { boardId, columnId, task, order, desc, subtasks } = req.body;
+  const { boardId, columnId, task, desc, subtasks } = req.body;
 
   try {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
     const columnDoc = boardDoc.columns.id(columnId);
     columnDoc.tasks = [
       ...columnDoc.tasks,
-      { task, order, desc, subtasks }
+      { task, desc, subtasks }
     ];
     await boardDoc.save();
     res.status(200).json(boardDoc);
   } catch(err) {
-    res.status(404).json(err.message);
+    next(err);
   };
 });
 
@@ -244,7 +248,7 @@ router.post("/update-task", authenticate, async function(req, res, next) {
     await boardDoc.save();
     res.status(200).json(boardDoc);
   } catch(err) {
-    res.status(404).json(err.message);
+    next(err);
   };
 });
 
@@ -301,7 +305,7 @@ router.post("/edit-task", authenticate, async function(req, res, next) {
     await boardDoc.save();
     res.status(200).json(boardDoc);
   } catch(err) {
-    res.status(404).json(err.message);
+    next(err);
   };
 });
 
@@ -318,8 +322,8 @@ router.delete("/delete-task/:boardId/:columnId/:taskId", authenticate, async fun
 
      await boardDoc.save();
      res.status(200).json(boardDoc);
-   } catch(err) {
-     res.status(404).json(err.message);
+    } catch(err) {
+     next(err);
   };
 });
 
