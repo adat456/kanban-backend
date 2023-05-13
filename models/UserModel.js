@@ -33,6 +33,7 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: [true, "Please enter an email address."],
         trim: true,
+        lowercase: true,
         validate: [isEmail, "Please enter a valid email address."],
     },
     boards: [{

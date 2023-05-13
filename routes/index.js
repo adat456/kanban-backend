@@ -344,4 +344,39 @@ router.delete("/delete-task/:boardId/:columnId/:taskId", authenticate, async fun
   };
 });
 
+/* pull users for possible contributors */
+router.get("/search/:searchTerm", authenticate, async function(req, res, next) {
+  const searchTerm = req.params.searchTerm.trim().toLowerCase();
+
+  try {
+    if (searchTerm.includes("@")) {
+      // if it's an email
+      const userDoc = await UserModel.findOne({ email: searchTerm })
+      if (userDoc) {
+        console.log(userDoc);
+        res.status(200).json({ 
+          userId: userDoc._id, 
+          userName: userDoc.firstName + " " + userDoc.lastName,
+          userStatus: "Member"
+        });
+      } else {
+        throw new Error("Unable to find matching user by email.");
+      };
+    } else {
+      const userDoc = await UserModel.findOne({ username: searchTerm })
+      if (userDoc) {
+        res.status(200).json({ 
+          userId: userDoc._id, 
+          userName: userDoc.firstName + " " + userDoc.lastName,
+          userStatus: "Member"
+        });
+      } else {
+        throw new Error("Unable to find matching user by username.");
+      };
+    };
+  } catch(err) {
+    next(err);
+  };
+});
+
 module.exports = router;
