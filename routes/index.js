@@ -90,7 +90,7 @@ router.get("/read-board/:name", authenticate, async function(req, res, next) {
 
 /* create board - receives name and columns */
 router.post("/create-board", authenticate, async function(req, res, next) {
-  const { name, columns } = req.body;
+  const { name, columns, contributors } = req.body;
   const trimmedBoardName = name.trim();
   
   try {
@@ -104,10 +104,27 @@ router.post("/create-board", authenticate, async function(req, res, next) {
       };
     });
 
-    // since error was not thrown, a new board is created and its objectid added to the user doc's boards array
-    const boardDoc = await BoardModel.create({ name: trimmedBoardName, columns });
-    userDoc.boards = [...userDoc.boards, boardDoc._id];
-    await userDoc.save();
+    // since error was not thrown, a new board is created
+    // it is also added to one or multiple boards, depending on whether there are any contributors
+    let boardDoc;
+    if (contributors) {
+      boardDoc = await BoardModel.create({ name: trimmedBoardName, columns, group: true, contributors });
+      // board's objectid added to all of the contributors' boards arrays...
+      contributors.forEach(async contributor => {
+        const userDoc = await UserModel.findOne({ _id: contributor.userId });
+        userDoc.boards = [...userDoc.boards, boardDoc._id];
+        await userDoc.save();
+      });
+      // ...and the signed-in user's
+      userDoc.boards = [...userDoc.boards, boardDoc._id];
+      await userDoc.save();
+    } else {
+      boardDoc = await BoardModel.create({ name: trimmedBoardName, columns, group: false });
+      //  board's objectid added only to the signed-in user's boards array
+      userDoc.boards = [...userDoc.boards, boardDoc._id];
+      await userDoc.save();
+    };
+    
     res.status(200).json(boardDoc);
   } catch(err) {
     next(err);
@@ -377,6 +394,15 @@ router.get("/search/:searchTerm", authenticate, async function(req, res, next) {
   } catch(err) {
     next(err);
   };
+});
+
+router.post("/add-contributors", authenticate, async function(req, res, next) {
+  // if the board has not been made yet...
+  // what we're working on right now, coming from the create board modal
+
+
+  // vs. if the board has already been made
+  // edit board modal
 });
 
 module.exports = router;

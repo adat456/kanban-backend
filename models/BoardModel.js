@@ -44,9 +44,18 @@ const BoardSchema = new mongoose.Schema({
         trim: true,
         maxLength: [20, "Maximum length of board title is 20 characters."],
     },
+    // need to remove and move to UserModel
     favorite: { 
         type: Boolean,
         default: false, 
+    },
+    group: {
+        type: Boolean,
+        required: true,
+    },
+    contributors: {
+        // {userName, userId, userStatus}[]
+        type: Array
     },
     columns: [ColumnSchema],
 });
