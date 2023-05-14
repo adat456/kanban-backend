@@ -109,21 +109,21 @@ router.post("/create-board", authenticate, async function(req, res, next) {
     let boardDoc;
     if (contributors) {
       boardDoc = await BoardModel.create({ name: trimmedBoardName, columns, group: true, contributors });
-      // board's objectid added to all of the contributors' boards arrays...
+      // board's objectid added to all of the contributors' boards arrays
       contributors.forEach(async contributor => {
         const userDoc = await UserModel.findOne({ _id: contributor.userId });
         userDoc.boards = [...userDoc.boards, boardDoc._id];
         await userDoc.save();
       });
       // ...and the signed-in user's
-      userDoc.boards = [...userDoc.boards, boardDoc._id];
-      await userDoc.save();
+      
     } else {
       boardDoc = await BoardModel.create({ name: trimmedBoardName, columns, group: false });
-      //  board's objectid added only to the signed-in user's boards array
-      userDoc.boards = [...userDoc.boards, boardDoc._id];
-      await userDoc.save();
     };
+
+    // board's objectid added only to the signed-in user's boards array
+    userDoc.boards = [...userDoc.boards, boardDoc._id];
+    await userDoc.save();
     
     res.status(200).json(boardDoc);
   } catch(err) {
@@ -194,16 +194,28 @@ router.delete("/delete-board/:boardId", authenticate, async function(req, res, n
   const boardId = req.params.boardId;
 
   try {
+    // find the board 
+    const boardDoc = await BoardModel.findOne({ _id: boardId });
+
+    // if there are contributors, delete boardId from their board arrays
+    if (boardDoc.group) {
+      boardDoc.contributors.forEach(async contributor => {
+        const userDoc = await UserModel.findOne({ _id: contributor.userId });
+        const updatedBoardArr = userDoc.boards.filter(id => id.toString() !== boardId);
+        userDoc.boards = updatedBoardArr;
+        await userDoc.save();
+      });
+    };
+
+    // delete boardId from the signed-in user's board array
+    const userDoc = await UserModel.findOne({ _id: res.locals.userId });
+    const updatedBoardArr = userDoc.boards.filter(id => id.toString() !== boardId);
+    userDoc.boards = updatedBoardArr;
+    await userDoc.save();
+
     // delete the board itself
     await BoardModel.deleteOne({ _id: boardId });
 
-    // update the user's board array
-    const userDoc = await UserModel.findOne({ _id: res.locals.userId });
-    const updatedBoardArr = userDoc.boards.filter(id => {
-      return (id.toString() !== boardId);
-    });
-    userDoc.boards = updatedBoardArr;
-    await userDoc.save();
     res.status(200).json(userDoc);
   } catch(err) {
     next(err);
