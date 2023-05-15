@@ -49,9 +49,10 @@ const BoardSchema = new mongoose.Schema({
         type: Boolean,
         default: false, 
     },
-    group: {
-        type: Boolean,
-        required: true,
+    creator: {
+        type: mongoose.ObjectId,
+        ref: "user",
+        required: true
     },
     contributors: {
         // {userName, userId, userStatus}[]
