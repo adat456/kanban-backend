@@ -133,15 +133,15 @@ router.post("/create-board", authenticate, async function(req, res, next) {
 
 /* update board */
 router.post("/update-board", authenticate, async function(req, res, next) {
-  const { name, boardId, columns } = req.body;
+  const { name, boardId, columns, contributors } = req.body;
 
   try {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
     boardDoc.name = name;
 
+    // COLUMN WORK
     let existingColumns = boardDoc.columns;
     let newColumns = [];
-
     columns.forEach(column => {
       // updating existing column if there is an ID (longer than 5 characters) and a name
       if (column.id.length > 5 && column.name) {
@@ -163,6 +163,35 @@ router.post("/update-board", authenticate, async function(req, res, next) {
       };
     });
     boardDoc.columns = [...existingColumns, ...newColumns];
+
+    // CONTRIBUTOR WORK
+    // arrays of users that require work on the user model end
+    let removedContributors = [];
+    boardDoc.contributors.forEach(existingContributor => {
+      // is there a match for the existing contributor in the new contributors array based on userId? if not, add existing contributor to removal list
+      const matchingContributor = contributors.find(contributor => contributor.userId === existingContributor.userId);
+      if (!matchingContributor) removedContributors.push(existingContributor);
+    });
+    let addedContributors = [];
+    contributors.forEach(contributor => {
+      // is there a match for the new contributor in the existing contributors array based on userId? if not, add new contributor to add list
+      const matchingContributor = boardDoc.contributors.find(existingContributor => existingContributor.userId === contributor.userId);
+      if (!matchingContributor) addedContributors.push(contributor);
+    });
+    // delete boardIds from all users in removedContributors
+    removedContributors.forEach(async contributor => {
+      const userDoc = await UserModel.findOne({ _id: contributor.userId });
+      userDoc.boards = userDoc.boards.filter(board => board._id.toString() !== boardId);
+      await userDoc.save();
+    });
+    // add boardIds to all users in addedContributors
+    addedContributors.forEach(async contributor => {
+      const userDoc = await UserModel.findOne({ _id: contributor.userId });
+      userDoc.boards.push(boardId);
+      await userDoc.save();
+    });
+    // completely replace existing contributor array with new contributor array (update and add)
+    boardDoc.contributors = contributors;
 
     await boardDoc.save();
     res.status(200).json(boardDoc);
