@@ -278,7 +278,7 @@ router.delete("/delete-board/:boardId", authenticate, async function(req, res, n
 /* create task */
 router.post("/create-task", authenticate, async function(req, res, next) {
   // subtasks should be formatted already as an array of objects 
-  const { boardId, columnId, task, desc, subtasks } = req.body;
+  const { boardId, columnId, task, desc, subtasks, created, deadline, assignees } = req.body;
 
   try {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
@@ -290,7 +290,7 @@ router.post("/create-task", authenticate, async function(req, res, next) {
       const columnDoc = boardDoc.columns.id(columnId);
       columnDoc.tasks = [
         ...columnDoc.tasks,
-        { task, desc, subtasks }
+        { task, desc, subtasks, created, deadline, assignees }
       ];
       await boardDoc.save();
       res.status(200).json(boardDoc);
@@ -305,7 +305,6 @@ router.post("/create-task", authenticate, async function(req, res, next) {
 /* update task - just for updating subtask status and changing the column */
 router.post("/update-task", authenticate, async function(req, res, next) {
   const { boardId, colId, taskId, taskOrder, updatedSubtasks = undefined, updatedTaskOrder = undefined, updatedColId } = req.body;
-  console.log(req.body);
 
   try {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
@@ -314,8 +313,13 @@ router.post("/update-task", authenticate, async function(req, res, next) {
 
     if (updatedSubtasks) {
       updatedSubtasks.forEach(async (updatedSubtask) => {
+        // make sure there's an ID matched subtask in database
         const subtaskDoc = await curTaskDoc.subtasks.id(updatedSubtask.id);
-        if (subtaskDoc) subtaskDoc.status = updatedSubtask.status;
+        if (subtaskDoc) {
+          // if there is a match, update the status and completedBy object
+          subtaskDoc.status = updatedSubtask.status;
+          subtaskDoc.completedBy = updatedSubtask.completedBy;
+        };
       });
 
       await boardDoc.save();
@@ -361,7 +365,7 @@ router.post("/update-task", authenticate, async function(req, res, next) {
 
 /* edit task - for editing task name, description, subtasks, AND column */
 router.post("/edit-task", authenticate, async function(req, res, next) {
-  const { boardId, colId, taskId, task, desc, updatedSubtasks, updatedColId } = req.body;
+  const { boardId, colId, taskId, task, desc, updatedSubtasks, updatedColId, assignees, deadline } = req.body;
 
   try {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
@@ -374,6 +378,8 @@ router.post("/edit-task", authenticate, async function(req, res, next) {
 
       taskDoc.task = task;
       taskDoc.desc = desc;
+      taskDoc.deadline = deadline;
+      taskDoc.assignees = assignees;
 
       let existingSubtasks = taskDoc.subtasks;
       let newSubtasks = [];

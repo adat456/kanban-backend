@@ -11,6 +11,10 @@ const SubTaskSchema = new mongoose.Schema({
         required: true,
         default: false,
     },
+    // {userId, initials}
+    completedBy: {
+        type: Object
+    }
 });
 
 const TaskSchema = new mongoose.Schema({
@@ -26,6 +30,19 @@ const TaskSchema = new mongoose.Schema({
         trim: true,
     },
     subtasks: [SubTaskSchema],
+    assignees: [{
+        type: Object,
+        ref: "user",
+    }],
+    created: {
+        type: Date,  
+    },
+    deadline: {
+        type: Date,
+    },
+    completed: {
+        type: Date,
+    }  
 });
 
 const ColumnSchema = new mongoose.Schema({
