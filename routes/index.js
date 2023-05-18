@@ -222,11 +222,16 @@ router.post("/update-board-favorite", authenticate, async function(req, res, nex
   const { boardId } = req.body;
 
   try {
-    const boardDoc = await BoardModel.findOne({ _id: boardId });
-    if (boardDoc) {
-      boardDoc.favorite = !boardDoc.favorite;
-      await boardDoc.save();
-      res.status(200).send(boardDoc);
+    const userDoc = await UserModel.findOne({ _id: res.locals.userId });
+    if (userDoc) {
+      if (userDoc.favorites.includes(boardId)) {
+        userDoc.favorites = userDoc.favorites.filter(favoriteBoard => favoriteBoard !== boardId);
+      } else {
+        userDoc.favorites.push(boardId);
+      };
+      
+      await userDoc.save();
+      res.status(200).send(userDoc);
     } else {
       throw new Error("Could not find board.")
     }
@@ -302,9 +307,9 @@ router.post("/create-task", authenticate, async function(req, res, next) {
   };
 });
 
-/* update task - just for updating subtask status and changing the column */
+/* update task - for updating subtask status, who subtask was completed by, changing the task column, and updating task completion */
 router.post("/update-task", authenticate, async function(req, res, next) {
-  const { boardId, colId, taskId, taskOrder, updatedSubtasks = undefined, updatedTaskOrder = undefined, updatedColId } = req.body;
+  const { boardId, colId, taskId, taskOrder, updatedSubtasks = undefined, updatedTaskOrder = undefined, updatedColId, completed } = req.body;
 
   try {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
@@ -324,6 +329,8 @@ router.post("/update-task", authenticate, async function(req, res, next) {
 
       await boardDoc.save();
     };
+
+    curTaskDoc.completed = completed;
 
     // UPDATING COLUMN AND ORDER
 

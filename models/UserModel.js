@@ -39,6 +39,9 @@ const UserSchema = new mongoose.Schema({
     boards: [{
         type: mongoose.ObjectId,
         ref: "board",
+    }],
+    favorites: [{
+        type: String
     }]
 });
 
