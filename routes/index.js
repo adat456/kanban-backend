@@ -330,7 +330,7 @@ router.post("/update-task", authenticate, async function(req, res, next) {
       await boardDoc.save();
     };
 
-    curTaskDoc.completed = completed;
+    if (completed) curTaskDoc.completed = completed;
 
     // UPDATING COLUMN AND ORDER
 
