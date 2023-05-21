@@ -1,12 +1,21 @@
 var express = require("express");
 var router = express.Router();
+const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const redis = require("redis");
 const { isNumeric, isEmail } = require("validator");
 const arrayMove = require("array-move");
+// const io = require("socket.io")(5500, {
+//   // https://socket.io/docs/v4/handling-cors/
+//   cors: {
+//       origin: "http://localhost:5173",
+//       credentials: true,
+//   }
+// });
 
 const UserModel = require("../models/UserModel");
 const BoardModel = require("../models/BoardModel");
+const NotificationModel = require("../models/NotificationModel");
 
 // setting up redis connection
 let redisClient = null;
@@ -22,6 +31,17 @@ let redisClient = null;
 
   await redisClient.connect();
 })();
+
+// setting up socket connection
+// let connectedSocket;
+// io.on("connection", socket => {
+//   console.log("Socket connected.");
+//   connectedSocket = socket;
+// });
+
+function createNotification(recipientId, message) {
+
+}
 
 /* authentication middleware */
 async function authenticate(req, res, next) {
@@ -97,6 +117,15 @@ router.get("/read-board/:name", authenticate, async function(req, res, next) {
   };
 });
 
+router.get("/get-notifications", authenticate, async function(req, res, next) {
+  try {
+    const notificationDocs = await NotificationModel.find({ recipientId: res.locals.userId });
+    res.status(200).json(notificationDocs);
+  } catch(err) {
+    next(err);
+  };
+})
+
 /* create board - receives name and columns */
 router.post("/create-board", authenticate, async function(req, res, next) {
   const { name, columns, contributors } = req.body;
@@ -117,9 +146,20 @@ router.post("/create-board", authenticate, async function(req, res, next) {
     // it is also added to one or multiple boards, depending on whether there are any contributors
     let boardDoc;
     if (contributors) {
+
       boardDoc = await BoardModel.create({ name: trimmedBoardName, columns, creator: res.locals.userId, contributors });
       // board's objectid added to all of the contributors' boards arrays
       contributors.forEach(async contributor => {
+        // connectedSocket.emit("contributor-message", `You've been added to the "${trimmedBoardName}" board as a contributor.`);
+        const notificationDoc = await NotificationModel.create({
+          recipientId: new mongoose.Types.ObjectId(contributor.userId),
+          senderId: populatedUserDoc._id,
+          senderFullName: populatedUserDoc.firstName + " " + populatedUserDoc.lastName,
+          message: `You've been added to the "${trimmedBoardName}" board as a ${contributor.userStatus.toLowerCase()}.`,
+          sent: new Date(),
+          acknowledged: false,
+        });
+        console.log(notificationDoc);
         const userDoc = await UserModel.findOne({ _id: contributor.userId });
         userDoc.boards = [...userDoc.boards, boardDoc._id];
         await userDoc.save();
