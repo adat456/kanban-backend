@@ -56,6 +56,8 @@ async function authenticate(req, res, next) {
       } else {
         const decodedToken = await jwt.verify(token, process.env.JWT_SECRET);
         res.locals.userId = decodedToken.id;
+        const userDoc = await UserModel.findOne({ _id: res.locals.userId });
+        res.locals.user = userDoc;
         next();
       }
     } else {
@@ -191,7 +193,7 @@ router.post("/update-board", authenticate, async function(req, res, next) {
     const isCreator = boardDoc.creator.toString() === res.locals.userId;
     const isCocreator = boardDoc.contributors.find(contributor => (contributor.userId === res.locals.userId && contributor.userStatus === "Co-creator"));
     if (isCreator || isCocreator) {
-      boardDoc.name = name;
+      boardDoc.name = name.trim();
 
       // COLUMN WORK
       let existingColumns = boardDoc.columns;
@@ -240,6 +242,15 @@ router.post("/update-board", authenticate, async function(req, res, next) {
       });
       // add boardIds to all users in addedContributors
       addedContributors.forEach(async contributor => {
+        const notificationDoc = await NotificationModel.create({
+          recipientId: new mongoose.Types.ObjectId(contributor.userId),
+          senderId: res.locals.userId,
+          senderFullName: res.locals.user.firstName + " " + res.locals.user.lastName,
+          message: `You've been added to the "${name.trim()}" board as a ${contributor.userStatus.toLowerCase()}.`,
+          sent: new Date(),
+          acknowledged: false,
+        });
+
         const userDoc = await UserModel.findOne({ _id: contributor.userId });
         userDoc.boards.push(boardId);
         await userDoc.save();
@@ -295,6 +306,15 @@ router.delete("/delete-board/:boardId", authenticate, async function(req, res, n
       // if there are contributors, delete boardId from their board arrays
       if (boardDoc.contributors.length > 0) {
         boardDoc.contributors.forEach(async contributor => {
+          const notificationDoc = await NotificationModel.create({
+            recipientId: new mongoose.Types.ObjectId(contributor.userId),
+            senderId: res.locals.userId,
+            senderFullName: res.locals.user.firstName + " " + res.locals.user.lastName,
+            message: `The "${boardDoc.name}" board was deleted.`,
+            sent: new Date(),
+            acknowledged: false,
+          });
+
           const userDoc = await UserModel.findOne({ _id: contributor.userId });
           const updatedBoardArr = userDoc.boards.filter(id => id.toString() !== boardId);
           userDoc.boards = updatedBoardArr;
@@ -332,6 +352,17 @@ router.post("/create-task", authenticate, async function(req, res, next) {
     const isCreator = boardDoc.creator.toString() === res.locals.userId;
     const isCocreator = boardDoc.contributors.find(contributor => (contributor.userId === res.locals.userId && contributor.userStatus === "Co-creator"));
     if (isCreator || isCocreator) {
+      if (assignees) assignees.forEach(async assignee => {
+        const notificationDoc = await NotificationModel.create({
+          recipientId: new mongoose.Types.ObjectId(assignee.userId),
+          senderId: res.locals.userId,
+          senderFullName: res.locals.user.firstName + " " + res.locals.user.lastName,
+          message: `You've been assigned to the "${task}" task in the "${boardDoc.name}" board.`,
+          sent: new Date(),
+          acknowledged: false,
+        });
+      });
+
       const columnDoc = boardDoc.columns.id(columnId);
       columnDoc.tasks = [
         ...columnDoc.tasks,
@@ -370,7 +401,27 @@ router.post("/update-task", authenticate, async function(req, res, next) {
       await boardDoc.save();
     };
 
-    if (completed) curTaskDoc.completed = completed;
+    if (completed) {
+      // notifying all task assignees
+      curTaskDoc.assignees.forEach(async assignee => {
+        const notificationDoc = await NotificationModel.create({
+          recipientId: new mongoose.Types.ObjectId(assignee.userId),
+          message: `The "${curTaskDoc.task}" task has been completed.`,
+          sent: new Date(),
+          acknowledged: false,
+        });
+      });
+
+      // and the task creator
+      const notificationDoc = await NotificationModel.create({
+        recipientId: boardDoc.creator,
+        message: `The "${curTaskDoc.task}" task has been completed.`,
+        sent: new Date(),
+        acknowledged: false,
+      });
+
+      curTaskDoc.completed = completed;
+    };
 
     // UPDATING COLUMN AND ORDER
 
@@ -426,7 +477,26 @@ router.post("/edit-task", authenticate, async function(req, res, next) {
       taskDoc.task = task;
       taskDoc.desc = desc;
       taskDoc.deadline = deadline;
-      taskDoc.assignees = assignees;
+
+      if (assignees) {
+        // finding new assignees and sending notifications
+        let newAssignees = [];
+        assignees.forEach(assignee => {
+          const match = taskDoc.assignees.find(existingAssignee => existingAssignee.userId === assignee.userId);
+          if (match) newAssignees.push(assignee);
+        });
+        newAssignees.forEach(async assignee => {
+          const notificationDoc = await NotificationModel.create({
+            recipientId: new mongoose.Types.ObjectId(assignee.userId),
+            senderId: res.locals.userId,
+            senderFullName: res.locals.user.firstName + " " + res.locals.user.lastName,
+            message: `You've been added to the "${boardDoc.name}" board as a ${contributor.userStatus.toLowerCase()}.`,
+            sent: new Date(),
+            acknowledged: false,
+          });
+        });
+        taskDoc.assignees = assignees;
+      };
 
       let existingSubtasks = taskDoc.subtasks;
       let newSubtasks = [];
@@ -489,6 +559,21 @@ router.delete("/delete-task/:boardId/:columnId/:taskId", authenticate, async fun
       const isCocreator = boardDoc.contributors.find(contributor => (contributor.userId === res.locals.userId && contributor.userStatus === "Co-creator"));
       if (isCreator || isCocreator) {
         const columnDoc = await boardDoc.columns.id(columnId);
+
+        // notifying task assignees
+        const taskDoc = await columnDoc.tasks.id(taskId);
+        taskDoc.assignees.forEach(async assignee => {
+          const notificationDoc = await NotificationModel.create({
+            recipientId: new mongoose.Types.ObjectId(assignee.userId),
+            senderId: res.locals.userId,
+            senderFullName: res.locals.user.firstName + " " + res.locals.user.lastName,
+            message: `The "${taskDoc.task}" task was deleted.`,
+            sent: new Date(),
+            acknowledged: false,
+          });
+        });
+
+        // removing the actual task
         columnDoc.tasks = columnDoc.tasks.filter(task => {
           return (task._id.toString() !== taskId);
         });

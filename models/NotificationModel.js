@@ -6,12 +6,10 @@ const NotificationSchema = new mongoose.Schema({
         required: true,
     },
     senderId: {
-        type: mongoose.ObjectId,
-        required: true,
+        type: mongoose.ObjectId
     },
     senderFullName: {
-        type: String,
-        required: true,
+        type: String
     },
     message: {
         type: String,
