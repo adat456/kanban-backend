@@ -483,14 +483,14 @@ router.post("/edit-task", authenticate, async function(req, res, next) {
         let newAssignees = [];
         assignees.forEach(assignee => {
           const match = taskDoc.assignees.find(existingAssignee => existingAssignee.userId === assignee.userId);
-          if (match) newAssignees.push(assignee);
+          if (!match) newAssignees.push(assignee);
         });
         newAssignees.forEach(async assignee => {
           const notificationDoc = await NotificationModel.create({
             recipientId: new mongoose.Types.ObjectId(assignee.userId),
             senderId: res.locals.userId,
             senderFullName: res.locals.user.firstName + " " + res.locals.user.lastName,
-            message: `You've been added to the "${boardDoc.name}" board as a ${contributor.userStatus.toLowerCase()}.`,
+            message: `You've been assigned to the "${taskDoc.task}" task in the "${boardDoc.name}" board.`,
             sent: new Date(),
             acknowledged: false,
           });
@@ -567,7 +567,7 @@ router.delete("/delete-task/:boardId/:columnId/:taskId", authenticate, async fun
             recipientId: new mongoose.Types.ObjectId(assignee.userId),
             senderId: res.locals.userId,
             senderFullName: res.locals.user.firstName + " " + res.locals.user.lastName,
-            message: `The "${taskDoc.task}" task was deleted.`,
+            message: `The "${taskDoc.task}" task in the "${boardDoc.name}" board was deleted.`,
             sent: new Date(),
             acknowledged: false,
           });
@@ -618,6 +618,19 @@ router.get("/search/:searchTerm", authenticate, async function(req, res, next) {
         throw new Error("Unable to find matching user by username.");
       };
     };
+  } catch(err) {
+    next(err);
+  };
+});
+
+router.post("/acknowledge-notifications", authenticate, async function(req, res, next) {
+  const acknowledged = req.body;
+
+  try {
+    acknowledged.forEach(async notifId => {
+      await NotificationModel.deleteOne({ _id: notifId });
+    });
+    res.status(200).json("Notifications acknowledged and deleted.");
   } catch(err) {
     next(err);
   };
