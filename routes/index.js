@@ -39,10 +39,6 @@ let redisClient = null;
 //   connectedSocket = socket;
 // });
 
-function createNotification(recipientId, message) {
-
-}
-
 /* authentication middleware */
 async function authenticate(req, res, next) {
   const token = req.cookies.jwt;
@@ -62,7 +58,7 @@ async function authenticate(req, res, next) {
       }
     } else {
       res.locals.userId = null;
-      throw new Error("No token received. Please log in.");
+      throw new Error("No JWT found.");
     };
   } catch(err) {
     res.locals.userId = null;
@@ -73,7 +69,11 @@ async function authenticate(req, res, next) {
 router.get("/user-info", authenticate, async function(req, res, next) {
   try {
     const userDoc = await UserModel.findOne({ _id: res.locals.userId });
-    res.status(200).json(userDoc);
+    if (userDoc) {
+      res.status(200).json(userDoc);
+    } else {
+      throw new Error("Unable to retrieve user data.");
+    };
   } catch(err) {
     next(err);
   };
@@ -94,35 +94,39 @@ router.get("/read-all", authenticate, async function (req, res, next) {
   };  
 });
 
-// only read-board should receive the board name, because it is pulling the board id for future routes
-/* read board/tasks */
-router.get("/read-board/:name", authenticate, async function(req, res, next) {
-  let boardName;
-  // accepts either board ID or board name (which is converted from hyphenated to spaced)
-  if (isNumeric(req.params.name)) {
-    boardName = req.params.name;
-  } else {
-    boardName = req.params.name.trim().toLowerCase().split("-").join(" ");
-  };
+// // only read-board should receive the board name, because it is pulling the board id for future routes
+// /* read board/tasks */
+// router.get("/read-board/:name", authenticate, async function(req, res, next) {
+//   let boardName;
+//   // accepts either board ID or board name (which is converted from hyphenated to spaced)
+//   if (isNumeric(req.params.name)) {
+//     boardName = req.params.name;
+//   } else {
+//     boardName = req.params.name.trim().toLowerCase().split("-").join(" ");
+//   };
 
-  try {
-    const populatedUserDoc = await UserModel.findOne({ _id: res.locals.userId }).populate("boards");
-    populatedUserDoc.boards.forEach(board => {
-      // .toString() is used to convert Mongoose ObjectIds to strings for comparison purposes, etc.
-      if (board.name.toLowerCase() === boardName || board._id.toString() === boardName) {
-        res.status(200).json(board);
-      };
-      // removed else clause that threw an error because it would throw an error at the first mismatch and automatically route to the catch clause
-    });
-  } catch(err) {
-    next(err);
-  };
-});
+//   try {
+//     const populatedUserDoc = await UserModel.findOne({ _id: res.locals.userId }).populate("boards");
+//     populatedUserDoc.boards.forEach(board => {
+//       // .toString() is used to convert Mongoose ObjectIds to strings for comparison purposes, etc.
+//       if (board.name.toLowerCase() === boardName || board._id.toString() === boardName) {
+//         res.status(200).json(board);
+//       };
+//       // removed else clause that threw an error because it would throw an error at the first mismatch and automatically route to the catch clause
+//     });
+//   } catch(err) {
+//     next(err);
+//   };
+// });
 
 router.get("/get-notifications", authenticate, async function(req, res, next) {
   try {
     const notificationDocs = await NotificationModel.find({ recipientId: res.locals.userId });
-    res.status(200).json(notificationDocs);
+    if (notificationDocs) {
+      res.status(200).json(notificationDocs);
+    } else {
+      throw new Error("Unable to retrieve notifications.");
+    };
   } catch(err) {
     next(err);
   };
@@ -130,7 +134,7 @@ router.get("/get-notifications", authenticate, async function(req, res, next) {
 
 /* create board - receives name and columns */
 router.post("/create-board", authenticate, async function(req, res, next) {
-  const { name, columns, contributors } = req.body;
+  const { name, columns, creator, contributors } = req.body;
   const trimmedBoardName = name.trim();
   
   try {
@@ -149,7 +153,7 @@ router.post("/create-board", authenticate, async function(req, res, next) {
     let boardDoc;
     if (contributors) {
 
-      boardDoc = await BoardModel.create({ name: trimmedBoardName, columns, creator: res.locals.userId, contributors });
+      boardDoc = await BoardModel.create({ name: trimmedBoardName, columns, creator, contributors });
       // board's objectid added to all of the contributors' boards arrays
       contributors.forEach(async contributor => {
         // connectedSocket.emit("contributor-message", `You've been added to the "${trimmedBoardName}" board as a contributor.`);
@@ -161,15 +165,16 @@ router.post("/create-board", authenticate, async function(req, res, next) {
           sent: new Date(),
           acknowledged: false,
         });
-        console.log(notificationDoc);
+        
         const userDoc = await UserModel.findOne({ _id: contributor.userId });
         userDoc.boards = [...userDoc.boards, boardDoc._id];
+
         await userDoc.save();
       });
       // ...and the signed-in user's
       
     } else {
-      boardDoc = await BoardModel.create({ name: trimmedBoardName, columns, creator: res.locals.userId });
+      boardDoc = await BoardModel.create({ name: trimmedBoardName, columns, creator });
     };
 
     // board's objectid added only to the signed-in user's boards array
@@ -190,7 +195,7 @@ router.post("/update-board", authenticate, async function(req, res, next) {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
 
     // check if the signed in user is either the creator or a co-creator
-    const isCreator = boardDoc.creator.toString() === res.locals.userId;
+    const isCreator = boardDoc.creator.userId === res.locals.userId;
     const isCocreator = boardDoc.contributors.find(contributor => (contributor.userId === res.locals.userId && contributor.userStatus === "Co-creator"));
     if (isCreator || isCocreator) {
       boardDoc.name = name.trim();
@@ -300,7 +305,7 @@ router.delete("/delete-board/:boardId", authenticate, async function(req, res, n
     const boardDoc = await BoardModel.findOne({ _id: boardId });
 
     // check if the signed in user is either the creator or a co-creator
-    const isCreator = boardDoc.creator.toString() === res.locals.userId;
+    const isCreator = boardDoc.creator.userId === res.locals.userId;
     const isCocreator = boardDoc.contributors.find(contributor => (contributor.userId === res.locals.userId && contributor.userStatus === "Co-creator"));
     if (isCreator || isCocreator) {
       // if there are contributors, delete boardId from their board arrays
@@ -323,7 +328,7 @@ router.delete("/delete-board/:boardId", authenticate, async function(req, res, n
       };
 
       // delete boardId from the creator's board array
-      const userDoc = await UserModel.findOne({ _id: boardDoc.creator });
+      const userDoc = await UserModel.findOne({ _id: boardDoc.creator.userId });
       const updatedBoardArr = userDoc.boards.filter(id => id.toString() !== boardId);
       userDoc.boards = updatedBoardArr;
       await userDoc.save();
@@ -349,7 +354,7 @@ router.post("/create-task", authenticate, async function(req, res, next) {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
 
     // check if the signed in user is either the creator or a co-creator
-    const isCreator = boardDoc.creator.toString() === res.locals.userId;
+    const isCreator = boardDoc.creator.userId === res.locals.userId;
     const isCocreator = boardDoc.contributors.find(contributor => (contributor.userId === res.locals.userId && contributor.userStatus === "Co-creator"));
     if (isCreator || isCocreator) {
       if (assignees) assignees.forEach(async assignee => {
@@ -380,82 +385,91 @@ router.post("/create-task", authenticate, async function(req, res, next) {
 
 /* update task - for updating subtask status, who subtask was completed by, changing the task column, and updating task completion */
 router.post("/update-task", authenticate, async function(req, res, next) {
-  const { boardId, colId, taskId, taskOrder, updatedSubtasks = undefined, updatedTaskOrder = undefined, updatedColId, completed } = req.body;
+  const { userStatus, boardId, colId, taskId, taskOrder, updatedSubtasks = undefined, updatedTaskOrder = undefined, updatedColId, completed } = req.body;
 
   try {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
+    console.log(boardDoc);
     // can string multiple find commands to access deeply nested subdocs
     const curTaskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
 
-    if (updatedSubtasks) {
-      updatedSubtasks.forEach(async (updatedSubtask) => {
-        // make sure there's an ID matched subtask in database
-        const subtaskDoc = await curTaskDoc.subtasks.id(updatedSubtask.id);
-        if (subtaskDoc) {
-          // if there is a match, update the status and completedBy object
-          subtaskDoc.status = updatedSubtask.status;
-          subtaskDoc.completedBy = updatedSubtask.completedBy;
-        };
-      });
-
-      await boardDoc.save();
-    };
-
-    if (completed) {
-      // notifying all task assignees
-      curTaskDoc.assignees.forEach(async assignee => {
+    const curAssignee = curTaskDoc.assignees.find(assignee => assignee.userId === res.locals.userId);
+    if (curAssignee && userStatus === "Member") {
+      if (updatedSubtasks) {
+        updatedSubtasks.forEach(async (updatedSubtask) => {
+          // make sure there's an ID matched subtask in database
+          const subtaskDoc = await curTaskDoc.subtasks.id(updatedSubtask.id);
+          if (subtaskDoc) {
+            // if there is a match, update the status and completedBy object
+            subtaskDoc.status = updatedSubtask.status;
+            subtaskDoc.completedBy = updatedSubtask.completedBy;
+          };
+        });
+  
+        await boardDoc.save();
+      };
+  
+      if (completed) {
+        // notifying all task assignees
+        curTaskDoc.assignees.forEach(async assignee => {
+          const notificationDoc = await NotificationModel.create({
+            recipientId: new mongoose.Types.ObjectId(assignee.userId),
+            message: `The "${curTaskDoc.task}" task has been completed.`,
+            sent: new Date(),
+            acknowledged: false,
+          });
+        });
+  
+        // and the task creator
         const notificationDoc = await NotificationModel.create({
-          recipientId: new mongoose.Types.ObjectId(assignee.userId),
+          recipientId: boardDoc.creator.userId,
           message: `The "${curTaskDoc.task}" task has been completed.`,
           sent: new Date(),
           acknowledged: false,
         });
-      });
-
-      // and the task creator
-      const notificationDoc = await NotificationModel.create({
-        recipientId: boardDoc.creator,
-        message: `The "${curTaskDoc.task}" task has been completed.`,
-        sent: new Date(),
-        acknowledged: false,
-      });
-
-      curTaskDoc.completed = completed;
-    };
-
-    // UPDATING COLUMN AND ORDER
-
-    // same column, different order
-    if (colId === updatedColId) {
-      const curColumnDoc = await boardDoc.columns.id(colId);
-      curColumnDoc.tasks = arrayMove(curColumnDoc.tasks, taskOrder, updatedTaskOrder);
-    };
-
-    // different column
-    if (colId !== updatedColId) {
-      // order specified - split task array in half and join with new task in the middle
-      if (updatedTaskOrder >= 0) {
-        const curTaskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
-        const updatedColumnDoc = await boardDoc.columns.id(updatedColId);
-        const firstHalfTaskArr = updatedColumnDoc.tasks.slice(0, updatedTaskOrder);
-        const secondHalfTaskArr = updatedColumnDoc.tasks.slice(updatedTaskOrder);
-        updatedColumnDoc.tasks = [...firstHalfTaskArr, curTaskDoc, ...secondHalfTaskArr]
+  
+        curTaskDoc.completed = completed;
       } else {
-        // no order specified - moving to empty column OR if using the edit task form - just add the task to the end of the task array
-        const curTaskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
-        const updatedColumnDoc = await boardDoc.columns.id(updatedColId);
-        updatedColumnDoc.tasks = [...updatedColumnDoc.tasks, curTaskDoc];
+        // if marked as incomplete, set to an empty string
+        curTaskDoc.completed = "";
       };
-
-      // clean up - filtering the task from the current column's task arr
-      const curColumnDoc = await boardDoc.columns.id(colId);
-      curColumnDoc.tasks = curColumnDoc.tasks.filter(task => {
-        return (task._id.toString() !== taskId);
-      }); 
+  
+      // UPDATING COLUMN AND ORDER
+  
+      // same column, different order
+      if (colId === updatedColId) {
+        const curColumnDoc = await boardDoc.columns.id(colId);
+        curColumnDoc.tasks = arrayMove(curColumnDoc.tasks, taskOrder, updatedTaskOrder);
+      };
+  
+      // different column
+      if (colId !== updatedColId) {
+        // order specified - split task array in half and join with new task in the middle
+        if (updatedTaskOrder >= 0) {
+          const curTaskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
+          const updatedColumnDoc = await boardDoc.columns.id(updatedColId);
+          const firstHalfTaskArr = updatedColumnDoc.tasks.slice(0, updatedTaskOrder);
+          const secondHalfTaskArr = updatedColumnDoc.tasks.slice(updatedTaskOrder);
+          updatedColumnDoc.tasks = [...firstHalfTaskArr, curTaskDoc, ...secondHalfTaskArr]
+        } else {
+          // no order specified - moving to empty column OR if using the edit task form - just add the task to the end of the task array
+          const curTaskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
+          const updatedColumnDoc = await boardDoc.columns.id(updatedColId);
+          updatedColumnDoc.tasks = [...updatedColumnDoc.tasks, curTaskDoc];
+        };
+  
+        // clean up - filtering the task from the current column's task arr
+        const curColumnDoc = await boardDoc.columns.id(colId);
+        curColumnDoc.tasks = curColumnDoc.tasks.filter(task => {
+          return (task._id.toString() !== taskId);
+        }); 
+      };
+  
+      await boardDoc.save();
+      res.status(200).json(boardDoc);
+    } else {
+      throw new Error("You do not have the ability to update or complete subtasks. Please contact the board creator.");
     };
-
-    await boardDoc.save();
-    res.status(200).json(boardDoc);
   } catch(err) {
     next(err);
   };
@@ -469,7 +483,7 @@ router.post("/edit-task", authenticate, async function(req, res, next) {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
 
     // check if the signed in user is either the creator or a co-creator
-    const isCreator = boardDoc.creator.toString() === res.locals.userId;
+    const isCreator = boardDoc.creator.userId === res.locals.userId;
     const isCocreator = boardDoc.contributors.find(contributor => (contributor.userId === res.locals.userId && contributor.userStatus === "Co-creator"));
     if (isCreator || isCocreator) {
       const taskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
@@ -478,7 +492,7 @@ router.post("/edit-task", authenticate, async function(req, res, next) {
       taskDoc.desc = desc;
       taskDoc.deadline = deadline;
 
-      if (assignees) {
+      if (taskDoc.assignees) {
         // finding new assignees and sending notifications
         let newAssignees = [];
         assignees.forEach(assignee => {
@@ -555,14 +569,16 @@ router.delete("/delete-task/:boardId/:columnId/:taskId", authenticate, async fun
      const boardDoc = await BoardModel.findOne({ _id: boardId });
 
      // check if the signed in user is either the creator or a co-creator
-      const isCreator = boardDoc.creator.toString() === res.locals.userId;
+      const isCreator = boardDoc.creator.userId === res.locals.userId;
       const isCocreator = boardDoc.contributors.find(contributor => (contributor.userId === res.locals.userId && contributor.userStatus === "Co-creator"));
       if (isCreator || isCocreator) {
         const columnDoc = await boardDoc.columns.id(columnId);
+        console.log(columnDoc);
 
         // notifying task assignees
         const taskDoc = await columnDoc.tasks.id(taskId);
-        taskDoc.assignees.forEach(async assignee => {
+
+        if (taskDoc.assignees.length > 0) taskDoc.assignees.forEach(async assignee => {
           const notificationDoc = await NotificationModel.create({
             recipientId: new mongoose.Types.ObjectId(assignee.userId),
             senderId: res.locals.userId,

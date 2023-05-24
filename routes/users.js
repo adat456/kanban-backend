@@ -85,14 +85,18 @@ router.get("/log-out", async function(req, res, next) {
   const token = req.cookies.jwt;
 
   try {
-    const { exp } = await jwt.verify(token, process.env.JWT_SECRET);
-    // storing a key-value pair consisting of an arbitrary (but unique) key name and the actual JWT token
-    const key = `blacklist_${token}`;
-    await redisClient.set(key, token);
-    // specifying the expiry date of the key-value pair with the key name and the expiry date of the token itself
-    redisClient.expireAt(key, exp);
-    
-    res.status(200).send("Logged out.");
+    if (token) {
+      const { exp } = await jwt.verify(token, process.env.JWT_SECRET);
+      // storing a key-value pair consisting of an arbitrary (but unique) key name and the actual JWT token
+      const key = `blacklist_${token}`;
+      await redisClient.set(key, token);
+      // specifying the expiry date of the key-value pair with the key name and the expiry date of the token itself
+      redisClient.expireAt(key, exp);
+      
+      res.status(200).json("Logged out.");
+    } else {
+      throw new Error("No JWT found.");
+    };
   } catch(err) {
     next(err);
   };  

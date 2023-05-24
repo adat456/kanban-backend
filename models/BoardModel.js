@@ -61,9 +61,9 @@ const BoardSchema = new mongoose.Schema({
         trim: true,
         maxLength: [20, "Maximum length of board title is 20 characters."],
     },
+    // {userName, userId}
     creator: {
-        type: mongoose.ObjectId,
-        ref: "user",
+        type: Object,
         required: true
     },
     contributors: {
