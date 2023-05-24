@@ -348,7 +348,7 @@ router.delete("/delete-board/:boardId", authenticate, async function(req, res, n
 /* create task */
 router.post("/create-task", authenticate, async function(req, res, next) {
   // subtasks should be formatted already as an array of objects 
-  const { boardId, columnId, task, desc, subtasks, created, deadline, assignees } = req.body;
+  const { boardId, columnId, task, desc, subtasks, created, deadline, assignees, completed } = req.body;
 
   try {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
@@ -371,7 +371,7 @@ router.post("/create-task", authenticate, async function(req, res, next) {
       const columnDoc = boardDoc.columns.id(columnId);
       columnDoc.tasks = [
         ...columnDoc.tasks,
-        { task, desc, subtasks, created, deadline, assignees }
+        { task, desc, subtasks, created, deadline, assignees, completed }
       ];
       await boardDoc.save();
       res.status(200).json(boardDoc);
@@ -385,16 +385,15 @@ router.post("/create-task", authenticate, async function(req, res, next) {
 
 /* update task - for updating subtask status, who subtask was completed by, changing the task column, and updating task completion */
 router.post("/update-task", authenticate, async function(req, res, next) {
-  const { userStatus, boardId, colId, taskId, taskOrder, updatedSubtasks = undefined, updatedTaskOrder = undefined, updatedColId, completed } = req.body;
+  const { userStatus, boardId, colId, taskId, taskOrder, updatedSubtasks = undefined, updatedTaskOrder = undefined, updatedColId, completed, completionDate } = req.body;
 
   try {
     const boardDoc = await BoardModel.findOne({ _id: boardId });
-    console.log(boardDoc);
     // can string multiple find commands to access deeply nested subdocs
     const curTaskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
 
     const curAssignee = curTaskDoc.assignees.find(assignee => assignee.userId === res.locals.userId);
-    if (curAssignee && userStatus === "Member") {
+    if (curAssignee && userStatus !== "Viewer") {
       if (updatedSubtasks) {
         updatedSubtasks.forEach(async (updatedSubtask) => {
           // make sure there's an ID matched subtask in database
@@ -409,29 +408,35 @@ router.post("/update-task", authenticate, async function(req, res, next) {
         await boardDoc.save();
       };
   
-      if (completed) {
-        // notifying all task assignees
-        curTaskDoc.assignees.forEach(async assignee => {
+      // need to check that the completed property even came in, because drag and drop task function also uses this route, but does NOT send a completed or completionDate property
+      // if we did not check that this prop exists, we would have unwanted side effects, with tasks mysteriously becoming incomplete
+      if (req.body.hasOwnProperty("completed")) {
+        if (completed) {
+          // notifying all task assignees
+          curTaskDoc.assignees.forEach(async assignee => {
+            const notificationDoc = await NotificationModel.create({
+              recipientId: new mongoose.Types.ObjectId(assignee.userId),
+              message: `The "${curTaskDoc.task}" task has been completed.`,
+              sent: new Date(),
+              acknowledged: false,
+            });
+          });
+    
+          // and the task creator
           const notificationDoc = await NotificationModel.create({
-            recipientId: new mongoose.Types.ObjectId(assignee.userId),
+            recipientId: boardDoc.creator.userId,
             message: `The "${curTaskDoc.task}" task has been completed.`,
             sent: new Date(),
             acknowledged: false,
           });
-        });
-  
-        // and the task creator
-        const notificationDoc = await NotificationModel.create({
-          recipientId: boardDoc.creator.userId,
-          message: `The "${curTaskDoc.task}" task has been completed.`,
-          sent: new Date(),
-          acknowledged: false,
-        });
-  
-        curTaskDoc.completed = completed;
-      } else {
-        // if marked as incomplete, set to an empty string
-        curTaskDoc.completed = "";
+    
+          curTaskDoc.completed = completed;
+          curTaskDoc.completionDate = completionDate;
+        } else {
+          // if marked as incomplete, set to an empty string
+          curTaskDoc.completed = completed;
+          curTaskDoc.completionDate = "";
+        };
       };
   
       // UPDATING COLUMN AND ORDER

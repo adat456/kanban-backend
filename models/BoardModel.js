@@ -41,8 +41,11 @@ const TaskSchema = new mongoose.Schema({
         type: Date,
     },
     completed: {
+        type: Boolean,
+    },
+    completionDate: {
         type: Date,
-    }  
+    }
 });
 
 const ColumnSchema = new mongoose.Schema({
