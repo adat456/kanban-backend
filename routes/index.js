@@ -3,15 +3,8 @@ var router = express.Router();
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const redis = require("redis");
-const { isNumeric, isEmail } = require("validator");
+const { isEmail } = require("validator");
 const arrayMove = require("array-move");
-// const io = require("socket.io")(5500, {
-//   // https://socket.io/docs/v4/handling-cors/
-//   cors: {
-//       origin: "http://localhost:5173",
-//       credentials: true,
-//   }
-// });
 
 const UserModel = require("../models/UserModel");
 const BoardModel = require("../models/BoardModel");
@@ -31,13 +24,6 @@ let redisClient = null;
 
   await redisClient.connect();
 })();
-
-// setting up socket connection
-// let connectedSocket;
-// io.on("connection", socket => {
-//   console.log("Socket connected.");
-//   connectedSocket = socket;
-// });
 
 /* authentication middleware */
 async function authenticate(req, res, next) {
@@ -93,31 +79,6 @@ router.get("/read-all", authenticate, async function (req, res, next) {
     next(err);
   };  
 });
-
-// // only read-board should receive the board name, because it is pulling the board id for future routes
-// /* read board/tasks */
-// router.get("/read-board/:name", authenticate, async function(req, res, next) {
-//   let boardName;
-//   // accepts either board ID or board name (which is converted from hyphenated to spaced)
-//   if (isNumeric(req.params.name)) {
-//     boardName = req.params.name;
-//   } else {
-//     boardName = req.params.name.trim().toLowerCase().split("-").join(" ");
-//   };
-
-//   try {
-//     const populatedUserDoc = await UserModel.findOne({ _id: res.locals.userId }).populate("boards");
-//     populatedUserDoc.boards.forEach(board => {
-//       // .toString() is used to convert Mongoose ObjectIds to strings for comparison purposes, etc.
-//       if (board.name.toLowerCase() === boardName || board._id.toString() === boardName) {
-//         res.status(200).json(board);
-//       };
-//       // removed else clause that threw an error because it would throw an error at the first mismatch and automatically route to the catch clause
-//     });
-//   } catch(err) {
-//     next(err);
-//   };
-// });
 
 router.get("/get-notifications", authenticate, async function(req, res, next) {
   try {
