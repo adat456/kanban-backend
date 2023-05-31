@@ -8,9 +8,16 @@ require("dotenv").config();
 const UserModel = require("../models/UserModel");
 
 // setting up redis connection
+
 let redisClient = null;
 (async () => {
-  redisClient = redis.createClient();
+  redisClient = redis.createClient({
+    password: process.env.REDIS_PASSWORD,
+    socket: {
+        host: 'redis-12581.c266.us-east-1-3.ec2.cloud.redislabs.com',
+        port: 12581
+    },
+  });
 
   redisClient.on("error", error => {
     console.log(error);

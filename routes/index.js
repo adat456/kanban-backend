@@ -13,7 +13,13 @@ const NotificationModel = require("../models/NotificationModel");
 // setting up redis connection
 let redisClient = null;
 (async () => {
-  redisClient = redis.createClient();
+  redisClient = redis.createClient({
+    password: process.env.REDIS_PASSWORD,
+    socket: {
+        host: 'redis-12581.c266.us-east-1-3.ec2.cloud.redislabs.com',
+        port: 12581
+    },
+  });
 
   redisClient.on("error", error => {
     console.log(error);
@@ -113,7 +119,6 @@ router.post("/create-board", authenticate, async function(req, res, next) {
     // it is also added to one or multiple boards, depending on whether there are any contributors
     let boardDoc;
     if (contributors) {
-
       boardDoc = await BoardModel.create({ name: trimmedBoardName, columns, creator, contributors });
       // board's objectid added to all of the contributors' boards arrays
       contributors.forEach(async contributor => {
