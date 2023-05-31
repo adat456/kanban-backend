@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node ./bin/www",
     "devstart": "nodemon ./bin/www",
-    "serverstart": "DEBUG=kanban-back:* npm run devstart"
+    "serverstart": "DEBUG=kanban-back:* npm run devstart",
+    "heroku-postbuild": "cd kanban-frontend && npm install && npm install --only=dev --no-shrinkwrap && npm run build"
   },
   "dependencies": {
     "array-move": "^3.0.1",
