@@ -15,7 +15,6 @@ const Signup: React.FC = function() {
     const [ passwordErr, setPasswordErr ] = useState("");
     const [ confirmPassword, setConfirmPassword ] = useState("");
     const [ confirmPasswordErr, setConfirmPasswordErr ] = useState("");
-    const [ displayMsg, setDisplayMsg ] = useState("");
 
     const emailRef = useRef<HTMLInputElement>(null);
     const usernameRef = useRef<HTMLInputElement>(null);
@@ -85,7 +84,7 @@ const Signup: React.FC = function() {
                 throw new Error(message);
             };
         } catch(err) {
-            handleDisplayMsg(false, err.message, setDisplayMsg);
+            handleDisplayMsg(false, err.message);
 
             // setCustomValidity on fields errored because they are not unique
             if (err.message === "Email and username have already been taken.") {
@@ -101,7 +100,7 @@ const Signup: React.FC = function() {
 
             // set display message for missing fields
             if (err.message.startsWith("user validation failed:")) {
-                handleDisplayMsg(false, extractErrMsg(err.message), setDisplayMsg);
+                handleDisplayMsg(false, extractErrMsg(err.message));
             };
         };
     };
@@ -143,9 +142,7 @@ const Signup: React.FC = function() {
                 <button type="submit" className="save-btn">Sign up</button>
                 <p className="redirect">Already have an account? <a href="/log-in" onClick={() => navigate("/log-in")}>Log in</a></p>
             </form>
-            <dialog className="display-msg-modal">
-                <p>{displayMsg}</p>
-            </dialog>
+            <dialog className="display-msg-modal" />
         </div>
     );
 };

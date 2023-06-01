@@ -73,8 +73,8 @@ const Task: React.FC<Prop> = function({ task, order, colId }) {
                         <span className="subtasks">{`${numCompleteSubtasks} of ${task.subtasks.length} subtasks`}</span> : <></>
                     }
                 </div>
-                <div className="hidden" ref={dragHandleRef} {...listeners} {...attributes}>
-                    <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" fill="#828FA3" stroke="#828FA3"><g id="SVGRepo_bgCarrier" strokeWidth="0"/><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"/><g id="SVGRepo_iconCarrier"><path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z" fill="#828FA3"/></g></svg>
+                <div className="hidden" ref={dragHandleRef} {...listeners} {...attributes} title="Click and drag to move task between columns">
+                    <svg aria-hidden="true" focusable="false" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" fill="#828FA3" stroke="#828FA3"><g id="SVGRepo_bgCarrier" strokeWidth="0"/><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"/><g id="SVGRepo_iconCarrier"><path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z" fill="#828FA3"/></g></svg>
                 </div>
             </button>
             {viewTaskVis ? <ViewTask task={task} colId={colId} numCompleteSubtasks={numCompleteSubtasks} setViewTaskVis={setViewTaskVis} setEditTaskVis={setEditTaskVis} /> : null }

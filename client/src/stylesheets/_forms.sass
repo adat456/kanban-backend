@@ -488,8 +488,8 @@
 #app.dark .form-modal, #app.dark .delete-modal, #app.dark form, #app.dark .edit-task
     background-color: base.$dark-background-2
 
-    .edit-board-header svg
-        stroke: white
+    .create-board-header svg, .edit-board-header svg
+        stroke: base.$drk-blue-inactive
         fill: base.$dark-background-2
 
     .view-task-header button
@@ -521,6 +521,14 @@
         background-color: base.$dark-background-2
         border-color: base.$dark-outline
         color: white
+
+        :invalid
+            border-color: base.$red-inactive
+
+    p.err-msg
+        margin-top: 0.5rem
+        color: base.$red-inactive
+        font-size: 1.25rem
 
     ::placeholder
         color: base.$dark-outline

@@ -5,7 +5,6 @@ import Signup from "./components/Signup";
 import AllBoards from "./components/AllBoards";
 
 const App: React.FC = function() {
-
   return (
     <div className="App">
         <BrowserRouter>
@@ -18,7 +17,7 @@ const App: React.FC = function() {
         </BrowserRouter>
         <dialog className="display-msg-modal" />
     </div>
-  )
-}
+  );
+};
 
-export default App
+export default App;

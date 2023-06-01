@@ -7,7 +7,6 @@ const Login: React.FC = function() {
     const [ usernameErr, setUsernameErr ] = useState("");
     const [ password, setPassword ] = useState("");
     const [ passwordErr, setPasswordErr ] = useState("");
-    const [ displayMsg, setDisplayMsg ] = useState("");
 
     const location = useLocation();
     const navigate = useNavigate();
@@ -15,7 +14,7 @@ const Login: React.FC = function() {
     // whenever login page is loaded, checks to see if there is any state with a log out msg
     // if so, display it in the dialog
     useEffect(() => {
-        if (location.state) handleDisplayMsg(true, location.state.logOutMsg, setDisplayMsg);
+        if (location.state) handleDisplayMsg(true, location.state.logOutMsg);
     }, []);
 
     function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -51,7 +50,7 @@ const Login: React.FC = function() {
                 throw new Error(message);
             };
         } catch(err) {
-            handleDisplayMsg(false, err.message, setDisplayMsg);
+            handleDisplayMsg(false, err.message);
         };
     };
 
@@ -75,9 +74,7 @@ const Login: React.FC = function() {
                 <button type="submit" className="save-btn">Log in</button>
                 <p className="redirect">Don't have an account yet? <a href="/sign-up" onClick={() => navigate("/sign-up")}>Sign up</a></p>
             </form>
-            <dialog className="display-msg-modal">
-                <p>{displayMsg}</p>
-            </dialog>
+            <dialog className="display-msg-modal" />
         </div>
     );
 };

@@ -15,7 +15,6 @@ export interface taskData {
     task: string,
     desc: string,
     subtasks: subtaskData[],
-    // need to change to object
     assignees: {
         userId: string,
         userName: string
@@ -30,6 +29,13 @@ export interface columnData {
     name: string,
     tasks: taskData[]
 };
+export interface contributorType {
+    key?: number,
+    userId: string,
+    userName: string,
+    userStatus: string,
+    alreadyAdded?: boolean,
+};
 export interface boardData {
     _id: string,
     name: string,
@@ -40,12 +46,15 @@ export interface boardData {
     contributors: contributorType[],
     columns: columnData[]
 };
-export interface contributorType {
-    key?: number,
-    userId: string,
-    userName: string,
-    userStatus: string,
-    alreadyAdded?: boolean,
+
+export interface NotificationInterface {
+    _id: string,
+    recipientId: string,
+    senderId: string,
+    senderFullName: string,
+    message: string,
+    sent: string,
+    acknowledged: boolean,
 };
 
 export interface userInterface {
@@ -67,22 +76,9 @@ export interface curBoardIdInterface {
     setCurBoardId: React.Dispatch<React.SetStateAction<string>>
 };
 
+// contexts for export
 export const UserContext = createContext<userInterface | null>(null);
 export const UserStatusContext = createContext<string | null>(null);
 export const BoardsContext = createContext<boardsDataInterface>({ boardsData: null, setBoardsData: () => {} });
 export const CurBoardIdContext = createContext<curBoardIdInterface | null>({ curBoardId: "", setCurBoardId: () => {} });
 export const ModeContext = createContext("light");
-// // filter by: assigned, incomplete, overdue
-// export const FilterContext = createContext<string[]>([]);
-// // sort by: creation date, deadline ascending, deadline descending
-// export const SortContext = createContext<string>("");
-
-export interface NotificationInterface {
-    _id: string,
-    recipientId: string,
-    senderId: string,
-    senderFullName: string,
-    message: string,
-    sent: string,
-    acknowledged: boolean,
-};

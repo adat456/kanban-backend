@@ -16,7 +16,7 @@ header
     z-index: 2
 
     @media (max-width: 500px)
-        padding: 2rem 2rem 2rem 0
+        padding: 1.5rem 1.5rem 1.5rem 0
 
     .header-logo
         height: 3rem
@@ -28,7 +28,7 @@ header
                 display: none
 
         @media (max-width: 500px)
-            padding: 0 1.5rem 0 3rem
+            padding: 0 1.5rem 0 1.5rem
             display: block
 
     h1
@@ -37,6 +37,7 @@ header
 
         @media (max-width: 500px)
             padding-left: 1.5rem
+            font-size: 1.65rem
 
     .edit-brd-btn
         display: flex
@@ -65,8 +66,8 @@ header
         background-color: transparent
         display: block
         position: absolute
-        top: 3rem
-        right: 7rem
+        top: 2.5rem
+        right: 6rem
 
         @media (min-width: 501px)
             display: none
@@ -79,7 +80,7 @@ main
     background-color: base.$board-background   
     padding: 0 2rem 2rem 2rem    
     flex-grow: 1
-    max-width: calc(100vw - 300px)
+    max-width: calc(100vw - 280px)
     max-height: 90vh
     overflow: auto
 
@@ -157,6 +158,8 @@ main > p
         color: base.$grey
         @include base.m
         box-shadow: none
+        text-align: center
+        display: inline-block
 
 .task
     width: 100%
@@ -168,8 +171,9 @@ main > p
     margin-bottom: 1.5rem
     border-radius: 0.5rem
     box-shadow: 0 0.5rem 0.3rem base.$outline
-    display: grid
-    grid-template-columns: 5fr 1fr
+    display: flex
+    justify-content: space-between
+    align-items: center
 
     @media (max-width: 500px)
         padding: 1.5rem
@@ -177,11 +181,11 @@ main > p
     .task-name
         @include base.m
         display: block
-        padding-bottom: 1rem
         word-wrap: break-word
 
     .subtasks
         display: block
+        padding-top: 1rem
         @include base.med-body
         color: base.$grey
 
@@ -230,6 +234,9 @@ main#no-brd-chosen
 #app.dark header
     background-color: base.$dark-background-2
     border-bottom-color: base.$dark-outline
+
+    .header-logo
+        border-right: 1px solid grey
 
     h1
         color: white

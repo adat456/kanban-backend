@@ -78,10 +78,8 @@ export let validateCred: (input: HTMLInputElement, msgSetter: React.Dispatch<Rea
 };
 
 export function handleVisToggle(e) {
-    console.log("clicked");
     const fieldId = e.currentTarget.getAttribute("data-id");
     const field = document.querySelector(`#${fieldId}`);
-    console.log(field);
     if (field?.getAttribute("type") === "password") {
         field?.setAttribute("type", "text");
     } else {
@@ -89,7 +87,7 @@ export function handleVisToggle(e) {
     };
 }; 
 
-// extract info about missing fields (thrown by MongoDB model validation) for error display message
+// extract info about missing fields (thrown by MongoDB model validation) for error display message; used in Signup and Login components
 export let extractErrMsg: (errMsg: string) => string = function(errMsg) {
     const errMessages = errMsg.slice(24);
     let errMsgArr = errMessages.split(",");

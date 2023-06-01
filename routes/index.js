@@ -358,8 +358,7 @@ router.post("/update-task", authenticate, async function(req, res, next) {
     // can string multiple find commands to access deeply nested subdocs
     const curTaskDoc = await boardDoc.columns.id(colId).tasks.id(taskId);
 
-    const curAssignee = curTaskDoc.assignees.find(assignee => assignee.userId === res.locals.userId);
-    if (curAssignee && userStatus !== "Viewer") {
+    if (userStatus !== "Viewer") {
       if (updatedSubtasks) {
         updatedSubtasks.forEach(async (updatedSubtask) => {
           // make sure there's an ID matched subtask in database

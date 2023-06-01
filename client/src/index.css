@@ -79,7 +79,7 @@ header {
 }
 @media (max-width: 500px) {
   header {
-    padding: 2rem 2rem 2rem 0;
+    padding: 1.5rem 1.5rem 1.5rem 0;
   }
 }
 header .header-logo {
@@ -94,7 +94,7 @@ header .header-logo {
 }
 @media (max-width: 500px) {
   header .header-logo {
-    padding: 0 1.5rem 0 3rem;
+    padding: 0 1.5rem 0 1.5rem;
     display: block;
   }
 }
@@ -107,6 +107,7 @@ header h1 {
 @media (max-width: 500px) {
   header h1 {
     padding-left: 1.5rem;
+    font-size: 1.65rem;
   }
 }
 header .edit-brd-btn {
@@ -138,8 +139,8 @@ header .dropdown-sidebar-btn {
   background-color: transparent;
   display: block;
   position: absolute;
-  top: 3rem;
-  right: 7rem;
+  top: 2.5rem;
+  right: 6rem;
 }
 @media (min-width: 501px) {
   header .dropdown-sidebar-btn {
@@ -155,7 +156,7 @@ main {
   background-color: #F4F7FD;
   padding: 0 2rem 2rem 2rem;
   flex-grow: 1;
-  max-width: calc(100vw - 300px);
+  max-width: calc(100vw - 280px);
   max-height: 90vh;
   overflow: auto;
 }
@@ -244,6 +245,8 @@ main > p {
   line-height: 1.9rem;
   font-weight: 700;
   box-shadow: none;
+  text-align: center;
+  display: inline-block;
 }
 
 .task {
@@ -257,8 +260,9 @@ main > p {
   margin-bottom: 1.5rem;
   border-radius: 0.5rem;
   box-shadow: 0 0.5rem 0.3rem #E4EBFA;
-  display: grid;
-  grid-template-columns: 5fr 1fr;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 @media (max-width: 500px) {
   .task, .add-task-btn {
@@ -270,11 +274,11 @@ main > p {
   line-height: 1.9rem;
   font-weight: 700;
   display: block;
-  padding-bottom: 1rem;
   word-wrap: break-word;
 }
 .task .subtasks, .add-task-btn .subtasks {
   display: block;
+  padding-top: 1rem;
   font-size: 1.3rem;
   line-height: 2.3rem;
   font-weight: 500;
@@ -335,6 +339,9 @@ main#no-brd-chosen p {
 #app.dark header {
   background-color: #2B2C37;
   border-bottom-color: #3E3F4E;
+}
+#app.dark header .header-logo {
+  border-right: 1px solid grey;
 }
 #app.dark header h1 {
   color: white;
@@ -1254,8 +1261,8 @@ footer .log-out-btn:hover, footer .log-out-btn:focus {
 #app.dark .form-modal, #app.dark .delete-modal, #app.dark form, #app.dark .edit-task {
   background-color: #2B2C37;
 }
-#app.dark .form-modal .edit-board-header svg, #app.dark .delete-modal .edit-board-header svg, #app.dark form .edit-board-header svg, #app.dark .edit-task .edit-board-header svg {
-  stroke: white;
+#app.dark .form-modal .create-board-header svg, #app.dark .form-modal .edit-board-header svg, #app.dark .delete-modal .create-board-header svg, #app.dark .delete-modal .edit-board-header svg, #app.dark form .create-board-header svg, #app.dark form .edit-board-header svg, #app.dark .edit-task .create-board-header svg, #app.dark .edit-task .edit-board-header svg {
+  stroke: #635FC7;
   fill: #2B2C37;
 }
 #app.dark .form-modal .view-task-header button, #app.dark .delete-modal .view-task-header button, #app.dark form .view-task-header button, #app.dark .edit-task .view-task-header button {
@@ -1288,6 +1295,14 @@ footer .log-out-btn:hover, footer .log-out-btn:focus {
   background-color: #2B2C37;
   border-color: #3E3F4E;
   color: white;
+}
+#app.dark .form-modal input :invalid, #app.dark .form-modal textarea :invalid, #app.dark .form-modal select :invalid, #app.dark .delete-modal input :invalid, #app.dark .delete-modal textarea :invalid, #app.dark .delete-modal select :invalid, #app.dark form input :invalid, #app.dark form textarea :invalid, #app.dark form select :invalid, #app.dark .edit-task input :invalid, #app.dark .edit-task textarea :invalid, #app.dark .edit-task select :invalid {
+  border-color: #EA5555;
+}
+#app.dark .form-modal p.err-msg, #app.dark .delete-modal p.err-msg, #app.dark form p.err-msg, #app.dark .edit-task p.err-msg {
+  margin-top: 0.5rem;
+  color: #EA5555;
+  font-size: 1.25rem;
 }
 #app.dark .form-modal ::placeholder, #app.dark .delete-modal ::placeholder, #app.dark form ::placeholder, #app.dark .edit-task ::placeholder {
   color: #3E3F4E;
