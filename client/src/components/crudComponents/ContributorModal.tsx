@@ -55,7 +55,6 @@ const ContributorModal: React.FC<Prop> = function({ setContributorModal, contrib
                 throw new Error(res);
             };
         } catch(err) {
-            console.log(err);
             if (err.message === "No JWT found.") navigate("/log-in");
         };
     };

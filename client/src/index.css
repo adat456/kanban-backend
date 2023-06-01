@@ -275,6 +275,8 @@ main > p {
   font-weight: 700;
   display: block;
   word-wrap: break-word;
+  color: black;
+  -webkit-text-fill-color: black;
 }
 .task .subtasks, .add-task-btn .subtasks {
   display: block;
@@ -365,6 +367,7 @@ main#no-brd-chosen p {
 }
 #app.dark main .task .task-name {
   color: white;
+  -webkit-text-fill-color: white;
 }
 #app.dark main .task:hover h3, #app.dark main .task:focus h3 {
   color: #635FC7;

@@ -15,7 +15,6 @@ const Notifications: React.FC<Prop> = function({ notifications, setNotifications
     const navigate = useNavigate();
     
     function handleClick(notifId: string) {
-        console.log(acknowledged);
         setAcknowledged([...acknowledged, notifId]);
         setNotifications(notifications.filter(notification => notification._id !== notifId));
     };

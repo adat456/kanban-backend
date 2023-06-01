@@ -211,7 +211,7 @@ const ViewTask: React.FC<Prop> = function({ task, numCompleteSubtasks, colId, se
     };  
 
     return (
-        <dialog className="form-modal view-task-modal" onClose={() => console.log("closed")}>
+        <dialog className="form-modal view-task-modal">
             <form action="post" className="view-task">
                 <div className="view-task-header">
                     <div>

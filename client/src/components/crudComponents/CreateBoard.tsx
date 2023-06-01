@@ -109,8 +109,6 @@ const CreateBoard: React.FC<Prop> = function ({ setCreateBoardVis }) {
                 // indicates whether user should receive AND send cookies
                 credentials: "include"
             };
-
-            // socket.on("contributor-message", msg => console.log(msg));
             
             try {
                 const req = await fetch("/api/create-board", reqOptions);
