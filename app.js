@@ -31,7 +31,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "client/dist")));
 
 // added
-const whitelist = ['http://localhost:3100', 'http://localhost:5173', 'https://https://enigmatic-plains-42167.herokuapp.com/api']
+const whitelist = ['http://localhost:3100', 'http://localhost:5173', 'https://enigmatic-plains-42167.herokuapp.com', 'https://enigmatic-plains-42167.herokuapp.com/api']
 const corsOptions = {
   origin: function (origin, callback) {
     console.log("** Origin of request " + origin)
@@ -47,8 +47,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // first the API endpoints that send data
-app.use("/", indexRouter);
-app.use("/users", usersRouter);
+app.use("/api", indexRouter);
+app.use("/api/users", usersRouter);
 // then the catch-all for any non-matching request, sends React's build index.html file
 app.get("*", function(req, res) {
   res.sendFile(path.join(__dirname, "client/build/index.html"));
