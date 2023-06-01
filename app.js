@@ -31,7 +31,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "client/dist")));
 
 // added
-const whitelist = ['http://localhost:3100', 'http://localhost:5173', 'https://https://enigmatic-plains-42167.herokuapp.com']
+const whitelist = ['http://localhost:3100', 'http://localhost:5173', 'https://https://enigmatic-plains-42167.herokuapp.com/api']
 const corsOptions = {
   origin: function (origin, callback) {
     console.log("** Origin of request " + origin)
