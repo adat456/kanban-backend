@@ -41,20 +41,20 @@ if (process.env.NODE_ENV === 'production') {
 };
 
 // added
-const whitelist = ['http://localhost:3000', 'http://localhost:4173/kanban-frontend/', 'https://https://enigmatic-plains-42167.herokuapp.com']
+const whitelist = ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5173/kanban-frontend/', 'https://https://enigmatic-plains-42167.herokuapp.com']
 const corsOptions = {
   origin: function (origin, callback) {
     console.log("** Origin of request " + origin)
     if (whitelist.indexOf(origin) !== -1 || !origin) {
-      console.log("Origin acceptable")
-      callback(null, true)
+      console.log("Origin acceptable");
+      callback(null, true);
     } else {
-      console.log("Origin rejected")
-      callback(new Error('Not allowed by CORS'))
-    }
-  }
-}
-app.use(cors(corsOptions))
+      console.log("Origin rejected");
+      callback(new Error('Not allowed by CORS'));
+    };
+  },
+};
+app.use(cors(corsOptions));
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);

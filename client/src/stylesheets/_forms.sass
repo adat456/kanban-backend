@@ -1,0 +1,537 @@
+@use 'base'
+
+.display-msg-modal
+    border: 2px solid base.$drk-blue-inactive
+    width: fit-content
+    padding: 1rem 3rem
+    bottom: 2rem
+    margin: auto
+    border-radius: 10rem
+    position: fixed
+    background-color: base.$lite-blue-inactive
+    color: base.$drk-blue-inactive
+    font-size: 1.5rem
+
+    &.error
+        border: none
+        background-color: base.$red-inactive
+        color: white
+
+.signup-page, .login-page
+    @include base.center
+    height: 100vh
+    background-color: base.$lite-blue-active
+
+    .logo
+        height: 4.5rem
+        position: absolute
+        top: -2.5rem
+        left: 0
+        right: 0
+        margin: auto
+
+        @media (max-width: 500px)
+            height: 4rem
+
+    .signup-form, .login-form
+        position: relative
+        background-color: white
+        padding: 6rem 4rem 4rem 4rem
+        border-radius: 0.5rem
+
+        @media (max-width: 500px)
+            padding: 4rem 2.5rem 2.5rem 2.5rem
+
+        h2
+            text-align: center
+
+        input
+            background-color: transparent
+            
+        .password-field-set
+            display: flex
+            align-items: center
+
+            input
+                flex-grow: 1
+                margin: 0
+
+            button
+                height: 2rem
+                width: 6rem
+                padding: 0
+
+            svg
+                height: 1.75rem
+                fill: base.$grey
+
+                &:hover, &:focus
+                    fill: base.$outline
+
+        .redirect
+            padding-top: 2rem
+            @include base.m
+            display: block
+            text-align: center
+            color: base.$grey
+
+        a
+            @include base.m
+            text-decoration: underline
+
+            &:hover, &:focus
+                color: base.$drk-blue-inactive
+
+.notifications-modal, .form-modal, .delete-modal, .login-form, .signup-form
+    border: none
+    width: 500px
+    padding: 3rem 3rem 0rem 3rem
+    border-radius: 0.5rem
+    margin: auto
+    max-height: 80%
+
+    &::-webkit-scrollbar   
+        width: 1rem
+
+    &::-webkit-scrollbar-track
+        background-color: base.$add-background
+
+    &::-webkit-scrollbar-thumb
+        background-color: base.$grey
+
+    @media (max-width: 950px)
+        width: 60%
+    
+    @media (max-width: 500px)
+        width: 70%
+
+    &::backdrop
+        background-color: rgba(0, 0, 0, 0.4)
+
+    button.close-modal
+        margin: 2rem auto
+        width: 3rem
+        height: 3rem
+        padding: 1rem
+        border-radius: 50%
+        background-color: base.$lite-blue-inactive
+        @include base.center
+
+        &:hover, &:focus
+            background-color: base.$lite-blue-active
+
+        svg
+            height: 1rem
+            fill: base.$drk-blue-inactive
+
+    h2
+        @include base.l
+        color: black
+        padding: 0
+
+    p.deadline
+        margin-top: 0.25rem
+
+    .assignee-icons, .contributor-icons
+        display: flex
+        flex-wrap: wrap
+        column-gap: 1.25rem
+        margin: 1rem 0 3.5rem 0
+        font-size: 1.3rem
+        color: base.$grey
+        position: relative
+
+        .assignee-icon
+            padding: 1.25rem
+            border-radius: 5rem
+            background-color: base.$lite-blue-inactive
+            letter-spacing: 0.1rem
+
+        .assignee-full-name
+            position: absolute
+            top: 6rem
+            background-color: base.$lite-blue-active
+            padding: 0.5rem 1rem
+            border-radius: 0.5rem
+            
+            .pointer
+                position: absolute
+                top: -1rem
+                left: 0
+                width: 0
+                height: 0
+                border-left: 0.75rem solid transparent
+                border-right: 0.75rem solid transparent
+                border-bottom: 1.25rem solid base.$lite-blue-active
+
+    p
+        font-size: 1.3rem
+
+    label, legend
+        @include base.m
+        color: base.$grey
+        width: auto
+        display: block
+        margin: 1.5rem 0
+
+    // referring specifically to the labels and nested inputs in the Fields component
+    // the inputs are only nested in the Fields AND the ViewTask component -- nowhere else
+    label.col-label, label.subtask-label
+        width: 100%
+        display: flex
+        align-items: center
+        margin: 0
+
+        input
+            flex-grow: 1
+
+        button
+            width: 7rem
+
+        svg
+            margin-top: 1rem
+            height: 1.5rem
+            padding: 0 1rem
+            fill: base.$grey
+
+        button:hover, button:focus
+            svg
+                fill: base.$red-inactive
+
+    fieldset
+        border: none
+        margin-top: 2rem
+        margin-bottom: 2rem
+
+        legend
+            margin-bottom: 0
+
+    input, textarea, select
+        display: block
+        box-sizing: border-box
+        width: 100%
+        border: 1px solid base.$outline
+        padding: 1rem
+        @include base.bold-body
+        border-radius: 0.5rem
+        margin-top: 1rem
+
+        &:focus
+            outline: transparent
+            border: 2px solid base.$drk-blue-active
+
+        &:invalid
+            border-color: base.$red-inactive
+
+    ::placeholder
+        @include base.med-body
+        color: base.$outline
+    
+    .err-msg
+        margin-top: 0.5rem
+        color: base.$red-inactive
+        font-size: 1.25rem
+
+    // specifically for checkboxes in ViewTask (inputs also nested in labels here)
+    .checkboxes-field
+        .subtask-box
+            position: relative 
+
+        input
+            position: absolute
+            opacity: 0
+            width: 2rem
+            height: 2rem
+            left: 1rem
+            top: 0.5rem 
+
+        div.before
+            position: absolute
+            left: 1rem
+            top: 1.5rem
+            width: 2rem
+            height: 2rem
+            border-radius: 0.5rem
+            border: 1px solid base.$drk-blue-inactive
+
+        div.after
+            opacity: 0
+            position: absolute
+            left: 1rem
+            top: 1.25rem
+            width: 2.25rem
+            height: 2.25rem
+            border-radius: 0.5rem
+            border: 1px solid base.$drk-blue-inactive
+            background-color: base.$drk-blue-inactive
+            @include base.center
+            font-size: 1.2rem
+            font-weight: 700
+            color: white 
+
+        input:hover + div.before, input:focus + div.before
+            background-color: base.$drk-blue-active
+            border-color: base.$drk-blue-active
+
+        input:checked + div.before + div.after
+            opacity: 1      
+
+        input:hover + div.before + div.after, input:focus + div.before + div.after
+            background-color: base.$drk-blue-active
+            border-color: base.$drk-blue-active
+
+        label
+            padding: 1.5rem
+            padding-left: 4.5rem
+            margin: 1rem 0
+            background-color: base.$lite-blue-active
+            border-radius: 0.5rem
+
+        .checked-subtask
+            text-decoration: line-through
+
+
+    // specifically for the column dropdown in ViewTask and EditTask
+    select
+        width: 100%
+        background-color: white
+        @include base.med-body
+
+    // for the contributor modal
+    hr
+        margin: 2rem
+        border: 1px solid base.$outline
+        
+    .search-bar
+        display: flex
+
+        input
+            margin-top: 0
+            margin-right: 1rem
+            flex-grow: 1
+
+        button
+            padding: 1rem
+            border-radius: 0.5rem
+            background-color: base.$drk-blue-inactive
+            width: 5rem
+
+        button:hover, button:focus
+            background-color: base.$drk-blue-active
+
+        svg
+            height: 2rem
+            fill: base.$lite-blue-inactive
+
+    button.potential-contributor, button.chosen-assignee
+        width: fit-content
+        font-size: 1.3rem
+        margin-top: 1rem
+        padding: 1rem 2rem
+        border-radius: 0.5rem
+        background-color: base.$lite-blue-inactive
+
+        &:hover, &:focus
+            background-color: base.$lite-blue-active
+            color: base.$drk-blue-inactive    
+
+        &:disabled     
+            background-color: base.$outline
+            color: base.$grey
+
+    // for assignees in create task
+    div.chosen-assignees
+        display: flex
+        row-gap: 1rem
+        column-gap: 1rem
+        margin: 1rem 0
+        flex-wrap: wrap
+
+    button.chosen-assignee
+        display: flex  
+        align-items: center
+        margin: 0
+
+        p
+            font-size: 1.3rem
+
+        svg
+            margin-left: 1rem
+            height: 1.3rem
+
+        &:hover, &:focus
+            p
+                color: base.$drk-blue-inactive 
+            svg
+                fill: base.$drk-blue-inactive 
+
+    // for the contributor modal
+    .contributor
+        display: flex
+        align-items: center
+        margin-top: 1rem
+
+        p, select
+            width: calc((100% - 5rem)/2)
+
+        p
+            font-size: 1.3rem
+
+        select
+            margin-top: 0
+            margin-right: 1rem
+
+        button
+            padding: 1rem
+            width: 5rem
+
+        svg
+            margin-top: 0.25rem
+            height: 1.5rem
+            fill: base.$grey
+
+        button:hover, button:focus
+            svg
+                fill: base.$red-inactive
+
+    button
+        display: block
+        width: 100%
+        padding: 1.5rem 0
+        font-size: 1.3rem
+        font-weight: bold
+        border-radius: 10rem
+
+    .add-btn, .cancel-btn
+        margin-top: 1rem
+        background-color: base.$lite-blue-inactive
+        color: base.$drk-blue-inactive
+
+        &:hover, &:focus
+            background-color: base.$lite-blue-active
+
+    .save-btn
+        background-color: base.$drk-blue-inactive
+        color: white
+        margin-top: 3rem
+        margin-bottom: 1rem
+
+        &:hover, &:focus
+            background-color: base.$drk-blue-active
+    
+    .delete-btn
+        background-color: base.$red-inactive
+        color: white
+        margin-bottom: 1rem
+
+        &:hover, &:focus
+            background-color: base.$red-active
+
+.view-task-header, .create-board-header, .edit-board-header
+    display: flex
+    justify-content: space-between
+    align-items: center
+
+    h2
+        @include base.l
+        color: black
+
+    button  
+        width: auto
+        padding: 1rem
+
+        &:hover, &:focus
+            svg
+                stroke: base.$drk-blue-active
+
+    svg
+        height: 3rem
+        fill: white
+        stroke: base.$drk-blue-inactive
+
+.delete-modal
+    padding-bottom: 3rem
+    
+    h2
+        @include base.l
+        color: base.$red-inactive
+        margin-bottom: 2rem
+
+    p
+        @include base.med-body
+        color: base.$grey
+
+    .delete-btn-cluster
+        margin-top: 2rem
+        display: flex
+        column-gap: 2rem
+
+    .delete-btn
+        margin-top: 1rem
+        margin-bottom: 0
+
+// styles that need to cascade
+
+.signup-page, .login-page
+    @media (max-width: 500px)
+        input
+            margin: 0
+
+        label
+            margin-bottom: 0.5rem
+
+    .signup-form
+        @media (max-width: 500px)
+            padding: 2.5rem
+    
+
+#app.dark .form-modal, #app.dark .delete-modal, #app.dark form, #app.dark .edit-task
+    background-color: base.$dark-background-2
+
+    .edit-board-header svg
+        stroke: white
+        fill: base.$dark-background-2
+
+    .view-task-header button
+        background-color: base.$dark-background-2
+
+    p
+        color: white
+
+    .assignee-icon, .assignee-full-name
+        color: white
+        background-color: base.$dark-background-1
+    .pointer
+        border-bottom-color: base.$dark-background-1
+
+    button.potential-contributor, button.chosen-assignee
+        background-color: base.$drk-blue-inactive
+        color: white
+
+        svg
+            fill: white
+
+        &:hover, &:focus
+            background-color: base.$drk-blue-active
+
+    h2, label, legend
+        color: white
+
+    input, textarea, select
+        background-color: base.$dark-background-2
+        border-color: base.$dark-outline
+        color: white
+
+    ::placeholder
+        color: base.$dark-outline
+
+    .checkboxes-field 
+        label
+            background-color: base.$dark-background-1
+
+    hr
+        border-color: base.$dark-outline
+
+    .add-btn
+        background-color: white
+    
