@@ -27,21 +27,11 @@ app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-// commented this out in lieu of below
-// app.use(express.static(path.join(__dirname, "public")));
+// allows Express to serve static React build files
+app.use(express.static(path.join(__dirname, "client/dist")));
 
 // added
-if (process.env.NODE_ENV === 'production') {
-  // Serve any static files
-  app.use(express.static(path.join(__dirname, 'client/dist')));
-// Handle React routing, return all requests to React app
-  app.get('/*', function(req, res) {
-    res.sendFile(path.join(__dirname, './client/dist', 'index.html'));
-  });
-};
-
-// added
-const whitelist = ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5173/kanban-frontend/', 'https://https://enigmatic-plains-42167.herokuapp.com']
+const whitelist = ['http://localhost:3100', 'http://localhost:5173', 'https://https://enigmatic-plains-42167.herokuapp.com']
 const corsOptions = {
   origin: function (origin, callback) {
     console.log("** Origin of request " + origin)
@@ -56,8 +46,13 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+// first the API endpoints that send data
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
+// then the catch-all for any non-matching request, sends React's build index.html file
+app.get("*", function(req, res) {
+  res.sendFile(path.join(__dirname, "client/build/index.html"));
+});
 
 // error handlers
 function errorLogger(err, req, res, next) {
