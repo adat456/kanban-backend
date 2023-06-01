@@ -11,7 +11,6 @@ const mongoose = require("mongoose");
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 
-
 var app = express();
 
 // setting up database connection
@@ -50,8 +49,8 @@ app.use(cors(corsOptions));
 app.use("/api", indexRouter);
 app.use("/api/users", usersRouter);
 // then the catch-all for any non-matching request, sends React's build index.html file
-app.get("*", function(req, res) {
-  res.sendFile(path.join(__dirname, "client/build/index.html"));
+app.get("/*", function(req, res) {
+  res.sendFile(path.join(__dirname, "client", "dist", "index.html"));
 });
 
 // error handlers
